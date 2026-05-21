@@ -1,0 +1,190 @@
+
+jupyterhub:
+  hub:
+    image:
+      name: yutianqin/ndp-k8s-hub
+      tag: "latest"
+    extraEnv:
+      JUPYTERHUB_METRICS_API_KEY: a81e4f556c8f414df20e6294543451fc
+      NDP_JUPYTERHUB_NAMESPACE:
+        valueFrom:
+          configMapKeyRef:
+            name: hub-cluster-config
+            key: namespace
+      NDP_KEYCLOAK_URL:
+        valueFrom:
+          configMapKeyRef:
+            name: hub-cluster-config
+            key: keycloakUrl
+      NDP_KEYCLOAK_REALM: NDP
+      PVC_STORAGE_CLASS:
+        valueFrom:
+          configMapKeyRef:
+            name: hub-cluster-config
+            key: storageClass
+      NDP_WORKSPACES_HOST:
+        valueFrom:
+          configMapKeyRef:
+            name: hub-cluster-config
+            key: workspacesHost
+    existingSecret: jupyterhub-secret # Passing keycloak client_id and client_secret into hub server
+    config:
+      GenericOAuthenticator:
+        # oauth_callback_url, logout_redirect_url, client_id, client_secret,
+        # allow_all, allowed_groups, and admin_users are written at deploy time
+        # by the federation-fetch pre-install Job into the jupyterhub-secret
+        # (loaded via hub.existingSecret above). Do not set them here —
+        # they would only apply as fallbacks if the secret is absent.
+        login_service: keycloak
+        username_claim: preferred_username
+        userdata_params:
+          state: state
+        auto_login: True
+        enable_auth_state: True
+        scope:
+          - openid
+          - profile
+      JupyterHub:
+        authenticator_class: generic-oauth
+        base_url: /jupyter
+    baseUrl: /jupyter
+    service:
+      type: ClusterIP
+      annotations: {}
+      ports:
+        nodePort:
+      loadBalancerIP:
+    deploymentStrategy:
+      type: Recreate
+    db:
+      type: sqlite-pvc
+      pvc:
+        accessModes:
+          - ReadWriteOnce
+        storage: 10Gi
+        storageClassName: 
+    resources:
+      limits:
+        cpu: "2"
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 512Mi
+    networkPolicy:
+      enabled: false
+    extraConfig:
+      storage-class: |
+        import os
+        _sc = os.environ.get('PVC_STORAGE_CLASS', '')
+        if _sc:
+            c.KubeSpawner.storage_class = _sc
+    # declare a volume backed by jupyterhub-spawner cm
+    extraVolumes:
+      - name: spawner
+        configMap:
+          name: jupyterhub-spawner
+    # mount the volume to a specific path in the hub container
+    extraVolumeMounts:
+      - name: spawner
+        mountPath: /usr/local/etc/jupyterhub/jupyterhub_config.d/spawner.py
+        # use subPath to mount the specific file in the cm to the container
+        subPath: spawner.py
+
+  proxy:
+    secretToken: 132d98739b00ac82c57e9a974145e016b3abb3a4827c795d068b1a4037f46204
+    service:
+      type: ClusterIP
+    chp:
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 512Mi
+
+  singleuser:
+    uid: 1000
+    fsGid: 100
+    allowPrivilegeEscalation: true
+    extraPodConfig:
+      securityContext:
+          fsGroupChangePolicy: "OnRootMismatch"
+    cloudMetadata:
+      blockWithIptables: false
+    networkPolicy:
+      enabled: false
+    initContainers:
+    - name: volume-permissions
+      image: busybox
+      command: ["sh", "-c", "chmod 777 -R /home/jovyan/work/_User-Persistent-Storage"]
+      volumeMounts:
+        - mountPath: /home/jovyan/work/_User-Persistent-Storage
+          name: volume-{username}
+    storage:
+      extraLabels: {}
+      capacity: 1Gi
+      homeMountPath: /home/jovyan/work/_User-Persistent-Storage
+      dynamic:
+        storageClass: microk8s-hostpath
+        pvcNameTemplate: claim-{username}
+        volumeNameTemplate: volume-{username}
+        storageAccessModes: [ReadWriteOnce]
+
+    image:
+      name: gitlab-registry.nrp-nautilus.io/ndp/ndp-docker-images/jhub-spawn
+      tag: minimal_r_0.0.1  
+    startTimeout: 1200
+    cpu:
+      limit: 2
+      guarantee: 1
+    memory:
+      limit: 4G
+      guarantee: 4G
+    extraResource:
+      limits: {}
+      guarantees: {}
+    cmd: jupyterhub-singleuser
+    defaultUrl: "/lab"
+
+  scheduling:
+    userScheduler:
+      enabled: false
+    userPlaceholder:
+      enabled: false
+  # prePuller relates to the hook|continuous-image-puller DaemonsSets
+  prePuller:
+    hook:
+      enabled: false
+    continuous:
+      enabled: false
+
+  ingress:
+    # Disabled: the ndp-jupyterhub/templates/ingress.yaml template creates the Ingress
+    # using global.clusterHost when it is set, which is the recommended path.
+    # Set enabled: true and provide hosts[] here only for manual override.
+    enabled: false
+    ingressClassName: public
+    hosts: []
+    # default path: host/{jupyterhub.hub.baseUrl}/{pathSuffix}
+    pathSuffix: ""
+    # Additional path to route to hub (when using microk8s ingress addon):
+    # To prevent the situation where only /jupyter/ work and /jupyter does not correctly route
+    # extraPaths:
+    #   - path: /jupyter
+    #     pathType: Prefix
+    #     backend:
+    #       service:
+    #         name: proxy-public
+    #         port:
+    #           name: http
+    tls: []
+
+  cull:
+    enabled: true
+    users: false # stop the user's server but keep the user account in jupyterhub's db
+    removeNamedServers: false # whether to remove named servers (if false, cull only the default server)
+    timeout: 3600 # seconds of inactivity before culling a server
+    every: 600 # check every 600 seconds for idle servers to cull
+    concurrency: 10 # how many servers to cull in parallel
+    maxAge: 0 # maximum age of a server before it is culled, even if it is active. 0 means no maximum age.

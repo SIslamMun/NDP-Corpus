@@ -1,0 +1,78 @@
+site_name: NDP Documentation
+site_url: https://nationaldataplatform.org/documentation
+
+nav:
+  - Home: index.md
+  - Welcome: 
+    - What is NDP?: welcome/about.md
+    - Key Features: welcome/key-features.md
+    - Contributors: welcome/contributors.md
+  - Get Started: 
+    - Sign In: start/signin.md
+    - Quick Start Guide: start/quick-start-guide.md 
+  - Explore Data:
+    - Data Catalog: explore-data/catalog.md
+    - Register your Data: explore-data/register-data.md
+  - Workspace:
+    - Overview: workspace/overview.md
+    - Set up Workspace: workspace/set-up.md
+    - Working with a Workspace: workspace/working.md
+    - Use your own Jupyter image: workspace/bring-your-own-image.md
+    - Advanced Connectivity: workspace/endpoints/setup.md
+    - Troubleshooting: workspace/fei.md
+  - Education Hub:
+    - What is the Education Hub?: education-hub/index.md
+    - Create Classroom: education-hub/classroom/set-up.md
+    - Data Challenges:
+        - Host a Data Challenge: education-hub/data-challenges/hosting-a-data-challenge.md
+        - Join a Data Challenge: education-hub/data-challenges/participating-in-data-challenge.md 
+  - Policies and Guidelines: 
+        - Terms of Use: policies/terms-of-use.md
+        - Privacy Policy: policies/privacy-policy.md
+        - Code of Conduct: policies/code-of-conduct.md
+        - PVC Policy: policies/pvc-policy.md
+  - Contact: contact/contact.md
+
+theme:
+  name: material
+  logo: images/logos/ndp-logo.png
+  features:
+    - content.code.copy
+    - navigation.top
+  palette:
+    - scheme: default
+      primary: white
+      accent: indigo
+      toggle:
+        icon: material/eye-outline
+        name: Switch to dark mode
+    - scheme: slate
+      primary: white
+      accent: indigo
+      toggle:
+        icon: material/eye
+        name: Switch to light mode
+repo_url: https://github.com/national-data-platform
+
+extra:
+  social:
+    - icon: fontawesome/brands/instagram 
+      link: https://www.instagram.com/nationaldataplatform/
+    - icon: fontawesome/brands/x-twitter 
+      link: https://x.com/natldataplat
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/national-data-platform/
+
+markdown_extensions:
+  - tables
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg

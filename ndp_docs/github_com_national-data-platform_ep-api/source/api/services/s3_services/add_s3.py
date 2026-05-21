@@ -1,0 +1,124 @@
+# api/services/s3_services/add_s3.py
+from typing import Any, Dict, Optional
+
+from api.config import catalog_settings, ckan_settings
+from api.repositories import CKANRepository
+from api.services.metadata_services import inject_ndp_metadata
+
+RESERVED_KEYS = {
+    "name",
+    "title",
+    "owner_org",
+    "notes",
+    "id",
+    "resources",
+    "collection",
+}
+
+
+def add_s3(
+    resource_name,
+    resource_title,
+    owner_org,
+    resource_s3,
+    notes="",
+    extras=None,
+    ckan_instance=None,
+    user_info: Optional[Dict[str, Any]] = None,
+):
+    """
+    Add an S3 resource to CKAN.
+
+    Parameters
+    ----------
+    resource_name : str
+        The name of the resource to be created.
+    resource_title : str
+        The title of the resource to be created.
+    owner_org : str
+        The ID of the organization to which the resource belongs.
+    resource_s3 : str
+        The S3 URL of the resource to be added.
+    notes : str, optional
+        Additional notes about the resource (default is an empty string).
+    extras : dict, optional
+        Additional metadata to be added to the resource package as extras
+        (default is None).
+    ckan_instance : optional
+        A CKAN instance to use for resource creation. If not provided,
+        uses the default `ckan_settings.ckan`.
+    user_info : Optional[Dict[str, Any]]
+        User information for NDP metadata injection.
+
+    Returns
+    -------
+    str
+        The ID of the created resource if successful.
+
+    Raises
+    ------
+    ValueError
+        If any input parameter is invalid.
+    KeyError
+        If any reserved key is found in the extras.
+    Exception
+        If there is an error creating the resource, an exception is
+        raised with a detailed message.
+    """
+    if not isinstance(extras, (dict, type(None))):
+        raise ValueError("Extras must be a dictionary or None.")
+
+    if extras and RESERVED_KEYS.intersection(extras):
+        raise KeyError(
+            "Extras contain reserved keys: " f"{RESERVED_KEYS.intersection(extras)}"
+        )
+
+    # Prepare extras for injection
+    extras_cleaned = extras.copy() if extras else {}
+
+    # Inject NDP metadata if user_info is provided
+    if user_info:
+        extras_cleaned = inject_ndp_metadata(user_info, extras_cleaned)
+
+    # Decide repository to use
+    # If ckan_instance is provided (legacy), wrap it in CKANRepository
+    # Otherwise use the configured local catalog (CKAN or MongoDB)
+    if ckan_instance is None:
+        repository = catalog_settings.local_catalog
+    else:
+        repository = CKANRepository(ckan_instance)
+
+    try:
+        resource_package_dict = {
+            "name": resource_name,
+            "title": resource_title,
+            "owner_org": owner_org,
+            "notes": notes,
+        }
+
+        if extras_cleaned:
+            resource_package_dict["extras"] = [
+                {"key": k, "value": v} for k, v in extras_cleaned.items()
+            ]
+
+        resource_package = repository.package_create(**resource_package_dict)
+        resource_package_id = resource_package["id"]
+
+    except Exception as e:
+        raise Exception(f"Error creating resource package: {str(e)}")
+
+    if resource_package_id:
+        try:
+            repository.resource_create(
+                package_id=resource_package_id,
+                url=resource_s3,
+                name=resource_name,
+                description=f"Resource pointing to {resource_s3}",
+                format="s3",
+            )
+        except Exception as e:
+            raise Exception(f"Error creating resource: {str(e)}")
+
+        return resource_package_id
+    else:
+        raise Exception("Unknown error occurred")

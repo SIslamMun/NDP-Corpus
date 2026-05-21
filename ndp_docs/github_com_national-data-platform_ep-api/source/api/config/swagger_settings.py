@@ -1,0 +1,42 @@
+# api/config/swagger_settings.py
+
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """
+    Configuration settings for the API application.
+
+    All settings can be overridden using environment variables.
+    """
+
+    swagger_title: str = "API Documentation"
+    swagger_description: str = "This is the API documentation."
+    swagger_version: str = "0.29.0"
+    root_path: str = ""  # API root path prefix (e.g., "/test" or "")
+    is_public: bool = True
+    metrics_endpoint: str = "https://federation.ndp.utah.edu/metrics/"
+    metrics_interval_seconds: int = 3300  # 55 minutes
+    organization: str = "Unknown Organization"
+    ep_name: str = "Unknown EP"
+    use_jupyterlab: bool = False
+    jupyter_url: str = "https://jupyter.org/try-jupyter/lab/"
+    test_token: str = "testing_token"
+    auth_api_url: str = "https://idp.nationaldataplatform.org/temp/information"
+    enable_group_based_access: bool = False
+    group_names: str = ""  # Comma-separated list of allowed groups
+
+    # Access-request workflow (user requests entry → admin approves/rejects).
+    # Requires a MongoDB instance reachable via MONGODB_CONNECTION_STRING
+    # (reused from CatalogSettings) when turned on. Kept off by default
+    # so existing deployments without MongoDB keep booting as before.
+    enable_access_requests: bool = False
+    access_requests_collection: str = "access_requests"
+
+    model_config = {
+        "env_file": ".env",
+        "extra": "allow",
+    }
+
+
+swagger_settings = Settings()

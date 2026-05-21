@@ -1,0 +1,44 @@
+enabled: true
+
+clusterName: scidx-kafka
+
+controllers:
+  replicas: 3
+  storage:
+    type: ephemeral
+
+brokers:
+  replicas: 4
+  storage:
+    type: ephemeral
+  # Single advertisedHost applied to all brokers (set to your node's external IP/hostname)
+  advertisedHost: ""
+  nodePorts:
+    - broker: 0
+      port: 31090
+    - broker: 1
+      port: 31091
+    - broker: 2
+      port: 31092
+    - broker: 3
+      port: 31093
+
+kafka:
+  version: "4.0.0"
+  metadataVersion: "4.0-IV0"
+  config:
+    offsetsTopicReplicationFactor: 3
+    transactionStateLogReplicationFactor: 3
+    transactionStateLogMinIsr: 2
+    defaultReplicationFactor: 3
+    minInsyncReplicas: 2
+
+entityOperator:
+  enabled: false
+
+# Strimzi operator
+# default to always true since the operator is a prerequisite for this chart to work, 
+# but can be set to false if the operator is managed separately
+strimzi:
+  enabled: true
+  watchAllNamespaces: true

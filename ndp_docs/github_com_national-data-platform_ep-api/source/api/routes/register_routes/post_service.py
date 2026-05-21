@@ -1,0 +1,287 @@
+# api/routes/register_routes/post_service.py
+import logging
+from typing import Any, Dict, Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.config import catalog_settings, ckan_settings
+from api.models.service_request_model import ServiceRequest
+from api.repositories import CKANRepository
+from api.services.affinities_services import AffinitiesClient
+from api.services.auth_services import get_user_for_write_operation
+from api.services.service_services.add_service import add_service
+from api.services.service_services.update_service import patch_service
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.post(
+    "/services",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new service",
+    description=(
+        "Register a new service and its associated metadata to the system.\n\n"
+        "### Required Fields\n"
+        "- **service_name**: The unique name of the service to be created.\n"
+        "- **service_title**: The title of the service to be created.\n"
+        "- **owner_org**: Must be 'services' (organization for all services).\n"
+        "- **service_url**: The URL where the service is accessible.\n\n"
+        "### Optional Fields\n"
+        "- **service_type**: Type of service. The UI offers three "
+        "canonical options plus a free-text fallback; the backend "
+        "accepts any string up to 50 characters.\n"
+        "  - **API**: A programmatic interface (REST/HTTP, GraphQL, "
+        "gRPC, etc.) intended to be consumed by other software. "
+        "Pick this for endpoints designed to be called by code.\n"
+        "  - **UI**: A user-facing interface (web app, dashboard, "
+        "data viewer, etc.) intended to be opened in a browser by "
+        "a human. Pick this when the service is a website or visual "
+        "tool.\n"
+        "  - **Trigger**: An event source or scheduled job that "
+        "initiates work on its own (webhooks, cron jobs, message "
+        "producers, schedulers, etc.). Pick this when the service "
+        "runs without a direct user request.\n"
+        "  - Use any other free-text value when none of the three "
+        "applies.\n"
+        "- **notes**: A description of the service.\n"
+        "- **extras**: Additional metadata as CKAN extras.\n"
+        "- **health_check_url**: URL for service health check endpoint.\n"
+        "- **documentation_url**: URL to service documentation.\n\n"
+        "### Selecting the Server\n"
+        "Pass `?server=local` or `?server=pre_ckan` in the query string.\n"
+        "If not provided, defaults to 'local'.\n\n"
+        "### Authorization\n"
+        "This endpoint requires authentication. If organization-based "
+        "access control is enabled, only users belonging to the configured "
+        "organization can register services.\n\n"
+        "### Example Payload\n"
+        "{\n"
+        '    "service_name": "user_auth_api",\n'
+        '    "service_title": "User Authentication API",\n'
+        '    "owner_org": "services",\n'
+        '    "service_url": "https://api.example.com/auth",\n'
+        '    "service_type": "API",\n'
+        '    "notes": "RESTful API for user authentication",\n'
+        '    "extras": {\n'
+        '        "version": "2.1.0",\n'
+        '        "environment": "production"\n'
+        "    },\n"
+        '    "health_check_url": "https://api.example.com/auth/health",\n'
+        '    "documentation_url": "https://docs.example.com/auth-api"\n'
+        "}\n"
+    ),
+    responses={
+        201: {
+            "description": "Service registered successfully",
+            "content": {
+                "application/json": {
+                    "example": {"id": "12345678-abcd-efgh-ijkl-1234567890ab"}
+                }
+            },
+        },
+        401: {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+                "application/json": {"example": {"detail": "Invalid or expired token"}}
+            },
+        },
+        403: {
+            "description": "Forbidden - Organization membership required",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": (
+                            "Access forbidden: write operations require "
+                            "membership in organization 'Research Group'"
+                        )
+                    }
+                }
+            },
+        },
+        409: {
+            "description": "Conflict - Duplicate service",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": {
+                            "error": "Duplicate Service",
+                            "detail": (
+                                "A service with the given name or URL "
+                                "already exists."
+                            ),
+                        }
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "invalid_organization": {
+                            "summary": "Invalid organization",
+                            "value": {
+                                "detail": (
+                                    "owner_org must be 'services' for "
+                                    "service registration"
+                                )
+                            },
+                        },
+                        "server_error": {
+                            "summary": "Server configuration error",
+                            "value": {
+                                "detail": ("Server is not configured or unreachable.")
+                            },
+                        },
+                        "general_error": {
+                            "summary": "General error",
+                            "value": {"detail": "Error creating service: <error>"},
+                        },
+                    }
+                }
+            },
+        },
+    },
+)
+async def create_service(
+    data: ServiceRequest,
+    server: Literal["local", "pre_ckan"] = Query(
+        "local", description="Specify 'local' or 'pre_ckan'. Defaults to 'local'."
+    ),
+    user_info: Dict[str, Any] = Depends(get_user_for_write_operation),
+):
+    """
+    Register a new service and its associated metadata to the system.
+
+    All services are registered under the 'services' organization.
+    This endpoint creates both a CKAN dataset and resource for the service.
+
+    Parameters
+    ----------
+    data : ServiceRequest
+        Required/optional parameters for creating a service.
+    server : Literal['local', 'pre_ckan']
+        If not provided, defaults to 'local'.
+    user_info : Dict[str, Any]
+        User authentication and authorization information.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the ID of the created service if successful.
+
+    Raises
+    ------
+    HTTPException
+        - 401: Authentication required
+        - 403: Organization membership required (if enabled)
+        - 409: Duplicate service
+        - 400: Invalid parameters, server configuration, or other errors
+    """
+    try:
+        if server == "pre_ckan":
+            if not ckan_settings.pre_ckan_enabled:
+                raise HTTPException(
+                    status_code=400, detail="Pre-CKAN is disabled and cannot be used."
+                )
+            # Use PreCKAN repository
+            repository = catalog_settings.pre_catalog
+            ckan_instance = repository.ckan
+        else:
+            # Use local catalog (respects LOCAL_CATALOG_BACKEND configuration)
+            repository = catalog_settings.local_catalog
+            # For backward compatibility, extract ckan_instance if it's a CKAN repository
+            ckan_instance = (
+                repository.ckan if isinstance(repository, CKANRepository) else None
+            )
+
+        service_id = add_service(
+            service_name=data.service_name,
+            service_title=data.service_title,
+            owner_org=data.owner_org,
+            service_url=data.service_url,
+            service_type=data.service_type,
+            notes=data.notes,
+            extras=data.extras,
+            health_check_url=data.health_check_url,
+            documentation_url=data.documentation_url,
+            ckan_instance=ckan_instance,
+            user_info=user_info,
+        )
+
+        # Register in Affinities (non-blocking, errors are logged)
+        affinities_client = AffinitiesClient()
+        if affinities_client.is_enabled:
+            try:
+                affinity_uuid = await affinities_client.register_service(
+                    service_type=data.service_type,
+                    openapi_url=data.documentation_url,
+                    metadata={
+                        "service_name": data.service_name,
+                        "service_title": data.service_title,
+                        "service_url": data.service_url,
+                        "local_id": service_id,
+                        "notes": data.notes,
+                    },
+                )
+
+                # Store the Affinities UUID in the service extras
+                if affinity_uuid:
+                    try:
+                        patch_service(
+                            service_id=service_id,
+                            extras={"ndp_affinity_uuid": str(affinity_uuid)},
+                            ckan_instance=ckan_instance,
+                        )
+                        logger.info(
+                            f"Stored Affinities UUID {affinity_uuid} in service {service_id}"
+                        )
+                    except Exception as patch_error:
+                        logger.warning(
+                            f"Failed to store Affinities UUID in service extras: {patch_error}"
+                        )
+            except Exception as e:
+                logger.warning(f"Failed to register service in Affinities: {e}")
+
+        return {"id": service_id}
+
+    except ValueError as exc:
+        # Handle validation errors (e.g., wrong owner_org)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except KeyError as exc:
+        # Handle reserved key errors
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Reserved key error: {str(exc)}",
+        )
+    except Exception as exc:
+        error_msg = str(exc)
+
+        # Handle specific error cases
+        if "No scheme supplied" in error_msg:
+            raise HTTPException(
+                status_code=400, detail="Server is not configured or unreachable."
+            )
+        if (
+            "That URL is already in use" in error_msg
+            or "That name is already in use" in error_msg
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error": "Duplicate Service",
+                    "detail": (
+                        "A service with the given name or URL " "already exists."
+                    ),
+                },
+            )
+
+        # Generic error handling
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error creating service: {error_msg}",
+        )

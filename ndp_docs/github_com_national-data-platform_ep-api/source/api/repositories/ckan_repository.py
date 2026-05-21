@@ -1,0 +1,377 @@
+# api/repositories/ckan_repository.py
+"""
+CKAN implementation of the DataCatalogRepository interface.
+
+This module wraps the CKAN API client to conform to the repository
+interface, allowing seamless integration with the existing CKAN infrastructure.
+"""
+
+from typing import Any, Dict, List
+
+from api.repositories.base_repository import DataCatalogRepository
+
+
+class CKANRepository(DataCatalogRepository):
+    """
+    CKAN implementation of the catalog repository.
+
+    This class wraps a CKAN RemoteCKAN instance and delegates all
+    operations to it while conforming to the DataCatalogRepository interface.
+
+    Parameters
+    ----------
+    ckan_instance : RemoteCKAN
+        An instance of ckanapi.RemoteCKAN configured with URL and API key
+    """
+
+    def __init__(self, ckan_instance):
+        """
+        Initialize the CKAN repository wrapper.
+
+        Parameters
+        ----------
+        ckan_instance : RemoteCKAN
+            Configured CKAN API client
+        """
+        self.ckan = ckan_instance
+
+    def package_create(self, **kwargs) -> Dict[str, Any]:
+        """
+        Create a new package in CKAN.
+
+        Delegates directly to CKAN's package_create action.
+
+        Parameters
+        ----------
+        **kwargs
+            Package creation parameters (name, title, owner_org, etc.)
+
+        Returns
+        -------
+        dict
+            Created package data from CKAN
+
+        Raises
+        ------
+        Exception
+            If CKAN package creation fails
+        """
+        return self.ckan.action.package_create(**kwargs)
+
+    def package_show(self, id: str) -> Dict[str, Any]:
+        """
+        Retrieve a package from CKAN.
+
+        Parameters
+        ----------
+        id : str
+            Package ID or name
+
+        Returns
+        -------
+        dict
+            Package data from CKAN
+
+        Raises
+        ------
+        Exception
+            If package not found in CKAN
+        """
+        return self.ckan.action.package_show(id=id)
+
+    def package_update(self, **kwargs) -> Dict[str, Any]:
+        """
+        Update a package in CKAN.
+
+        Parameters
+        ----------
+        **kwargs
+            Package update parameters including 'id'
+
+        Returns
+        -------
+        dict
+            Updated package data from CKAN
+
+        Raises
+        ------
+        Exception
+            If CKAN package update fails
+        """
+        return self.ckan.action.package_update(**kwargs)
+
+    def package_patch(self, **kwargs) -> Dict[str, Any]:
+        """
+        Partially update a package in CKAN.
+
+        Parameters
+        ----------
+        **kwargs
+            Package patch parameters including 'id'
+
+        Returns
+        -------
+        dict
+            Updated package data from CKAN
+
+        Raises
+        ------
+        Exception
+            If CKAN package patch fails
+        """
+        return self.ckan.action.package_patch(**kwargs)
+
+    def package_delete(self, id: str) -> None:
+        """
+        Permanently delete a package from CKAN.
+
+        Uses package_purge instead of package_delete to ensure the dataset
+        is completely removed from the database, not just soft-deleted.
+        This allows organization deletion and name reuse.
+
+        Parameters
+        ----------
+        id : str
+            Package ID to delete
+
+        Raises
+        ------
+        Exception
+            If CKAN package purge fails
+        """
+        self.ckan.action.dataset_purge(id=id)
+
+    def package_search(
+        self,
+        q: str = "*:*",
+        fq: str = "",
+        rows: int = 10,
+        start: int = 0,
+        sort: str = "score desc, metadata_modified desc",
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """
+        Search packages in CKAN.
+
+        Parameters
+        ----------
+        q : str
+            Search query
+        fq : str
+            Filter query
+        rows : int
+            Number of results
+        start : int
+            Offset for pagination
+        sort : str
+            Sort order
+        **kwargs
+            Additional search parameters
+
+        Returns
+        -------
+        dict
+            Search results with 'count' and 'results' keys
+
+        Raises
+        ------
+        Exception
+            If CKAN search fails
+        """
+        return self.ckan.action.package_search(
+            q=q, fq=fq, rows=rows, start=start, sort=sort, **kwargs
+        )
+
+    def resource_create(self, **kwargs) -> Dict[str, Any]:
+        """
+        Create a resource in CKAN.
+
+        Parameters
+        ----------
+        **kwargs
+            Resource creation parameters (package_id, name, url, etc.)
+
+        Returns
+        -------
+        dict
+            Created resource data from CKAN
+
+        Raises
+        ------
+        Exception
+            If CKAN resource creation fails
+        """
+        return self.ckan.action.resource_create(**kwargs)
+
+    def resource_show(self, id: str) -> Dict[str, Any]:
+        """
+        Retrieve a resource from CKAN.
+
+        Parameters
+        ----------
+        id : str
+            Resource ID
+
+        Returns
+        -------
+        dict
+            Resource data from CKAN
+
+        Raises
+        ------
+        Exception
+            If resource not found in CKAN
+        """
+        return self.ckan.action.resource_show(id=id)
+
+    def resource_delete(self, id: str) -> None:
+        """
+        Delete a resource from CKAN.
+
+        Parameters
+        ----------
+        id : str
+            Resource ID to delete
+
+        Raises
+        ------
+        Exception
+            If CKAN resource deletion fails
+        """
+        self.ckan.action.resource_delete(id=id)
+
+    def resource_patch(self, **kwargs) -> Dict[str, Any]:
+        """
+        Partially update a resource in CKAN.
+
+        Parameters
+        ----------
+        **kwargs
+            Resource patch parameters including 'id' and fields to update
+
+        Returns
+        -------
+        dict
+            Updated resource data from CKAN
+
+        Raises
+        ------
+        Exception
+            If CKAN resource patch fails
+        """
+        return self.ckan.action.resource_patch(**kwargs)
+
+    def organization_create(self, **kwargs) -> Dict[str, Any]:
+        """
+        Create an organization in CKAN.
+
+        Parameters
+        ----------
+        **kwargs
+            Organization creation parameters (name, title, etc.).
+            ``ndp_user_id`` and ``ndp_creator_md5``, when provided, are
+            forwarded to CKAN as organization extras instead of
+            top-level fields (CKAN would otherwise reject unknown keys).
+
+        Returns
+        -------
+        dict
+            Created organization data from CKAN
+
+        Raises
+        ------
+        Exception
+            If CKAN organization creation fails
+        """
+        # Pull the creator hashes out of the kwargs and forward them as
+        # standard CKAN extras, so the data lives on the org but the
+        # public surface of the route stays unchanged.
+        ndp_user_id = kwargs.pop("ndp_user_id", None)
+        ndp_creator_md5 = kwargs.pop("ndp_creator_md5", None)
+        creator_extras = []
+        if ndp_user_id:
+            creator_extras.append({"key": "ndp_user_id", "value": ndp_user_id})
+        if ndp_creator_md5:
+            creator_extras.append({"key": "ndp_creator_md5", "value": ndp_creator_md5})
+        if creator_extras:
+            existing_extras = kwargs.get("extras") or []
+            kwargs["extras"] = list(existing_extras) + creator_extras
+        return self.ckan.action.organization_create(**kwargs)
+
+    def organization_show(self, id: str) -> Dict[str, Any]:
+        """
+        Retrieve an organization from CKAN.
+
+        Parameters
+        ----------
+        id : str
+            Organization ID or name
+
+        Returns
+        -------
+        dict
+            Organization data from CKAN
+
+        Raises
+        ------
+        Exception
+            If organization not found in CKAN
+        """
+        return self.ckan.action.organization_show(id=id)
+
+    def organization_list(
+        self, all_fields: bool = False, **kwargs
+    ) -> List[Dict[str, Any]]:
+        """
+        List organizations from CKAN.
+
+        Parameters
+        ----------
+        all_fields : bool
+            If True, return full data; if False, return only names
+        **kwargs
+            Additional parameters
+
+        Returns
+        -------
+        list
+            List of organizations from CKAN
+        """
+        return self.ckan.action.organization_list(all_fields=all_fields, **kwargs)
+
+    def organization_delete(self, id: str) -> None:
+        """
+        Permanently delete an organization from CKAN.
+
+        Uses organization_purge instead of organization_delete to ensure
+        the organization is completely removed from the database.
+        This is necessary because organization_delete may fail if there
+        are any datasets (even purged ones) that CKAN still tracks.
+
+        Parameters
+        ----------
+        id : str
+            Organization ID to delete
+
+        Raises
+        ------
+        Exception
+            If CKAN organization purge fails
+        """
+        self.ckan.action.organization_purge(id=id)
+
+    def check_health(self) -> bool:
+        """
+        Check if CKAN backend is reachable and operational.
+
+        Returns
+        -------
+        bool
+            True if CKAN is healthy and reachable, False otherwise
+        """
+        try:
+            # Try to get CKAN status
+            status = self.ckan.action.status_show()
+            return True if status else False
+        except Exception:
+            return False

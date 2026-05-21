@@ -1,0 +1,11 @@
+# This is a ConfigMap that contains the spawner.py file for JupyterHub;
+# The spawner.py file is used to customize the behavior of the JupyterHub spawner;
+# In this case, it is used to set up the OAuthenticator with Keycloak and to add
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jupyterhub-spawner
+  namespace: {{ .Release.Namespace }}
+data:
+  spawner.py: |
+{{ .Files.Get "spawner.py" | indent 4 }}

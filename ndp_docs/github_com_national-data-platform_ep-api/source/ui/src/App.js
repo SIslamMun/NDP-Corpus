@@ -1,0 +1,64 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import AuthGuard from './components/AuthGuard';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import Organizations from './pages/Organizations';
+import KafkaTopics from './pages/KafkaTopics';
+import UrlResources from './pages/UrlResources';
+import S3Resources from './pages/S3Resources';
+import S3Management from './pages/S3Management';
+import Services from './pages/Services';
+import Search from './pages/Search';
+import DatasetManagement from './pages/DatasetManagement';
+import AccessRequests from './pages/AccessRequests';
+import RolesHelp from './pages/RolesHelp';
+import './styles/global.css';
+
+/**
+ * Main App component with mandatory authentication
+ * Users must provide a valid JWT token to access any part of the application
+ */
+function App() {
+  return (
+    <div className="App">
+      <AuthGuard>
+        <Router basename={`${window.__EP_CONFIG__?.rootPath ?? ''}/ui`}>
+          <Layout>
+            <Routes>
+              {/* Search is the landing page */}
+              <Route path="/" element={<Search />} />
+              <Route path="/search" element={<Search />} />
+
+              {/* Dashboard remains available for admins */}
+              <Route path="/dashboard" element={<Dashboard />} />
+
+              {/* Organizations management routes */}
+              <Route path="/organizations" element={<Organizations />} />
+
+              {/* Data sources management routes */}
+              <Route path="/kafka-topics" element={<KafkaTopics />} />
+              <Route path="/url-resources" element={<UrlResources />} />
+              <Route path="/s3-resources" element={<S3Resources />} />
+              <Route path="/s3-management" element={<S3Management />} />
+
+              {/* Services management route */}
+              <Route path="/services" element={<Services />} />
+
+              {/* Dataset management routes */}
+              <Route path="/datasets" element={<DatasetManagement />} />
+
+              {/* Access request management route (admin-gated on backend) */}
+              <Route path="/access-requests" element={<AccessRequests />} />
+
+              {/* Roles & permissions documentation */}
+              <Route path="/roles-help" element={<RolesHelp />} />
+            </Routes>
+          </Layout>
+        </Router>
+      </AuthGuard>
+    </div>
+  );
+}
+
+export default App;

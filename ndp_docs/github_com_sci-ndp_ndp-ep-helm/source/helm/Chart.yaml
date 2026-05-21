@@ -1,0 +1,43 @@
+apiVersion: v2
+name: ndp-ep-helm
+description: Helm chart for NDP-Endpoint (CKAN, JupyterHub, NDP Endpoint API, Kafka).
+type: application
+version: 0.0.8
+appVersion: "0.1.0"
+dependencies:
+  # NDP Endpoint API
+  - name: ndp-ep-api
+    version: 0.13.0
+    repository: "file://./ndp-ep-api"
+    alias: ndp-ep-api
+    condition: ndp-ep-api.enabled
+
+  # fork from keitaroinc ckan-helm upstream chart
+  - name: ckan
+    version: "v4.0.2"
+    repository: "file://./ckan"
+    condition: ckan.enabled
+  
+  # NDP Generic JupyterHub (non-nrp cluster specific)
+  - name: ndp-jupyterhub
+    version: "0.1.1"
+    repository: "file://./ndp-jupyterhub"
+    condition: ndp-jupyterhub.enabled
+
+  # Strimzi Kafka Operator with KRaft mode
+  - name: kafka-kraft
+    version: "0.1.1"
+    repository: "file://./kafka-kraft"
+    condition: kafka-kraft.enabled
+
+  # # Remote Execution broker (ZMQ proxy)
+  # - name: rexec-broker
+  #   version: "0.1.0"
+  #   repository: "file://./rexec-broker"
+  #   condition: rexec-broker.enabled
+
+  # # Remote Execution Server Deployment API
+  # - name: rexec-server-deployment-api
+  #   version: "0.1.0"
+  #   repository: "file://./rexec-server-deployment-api"
+  #   condition: rexec-server-deployment-api.enabled

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ndp-ep-api.fullname" . }}
+  labels:
+    {{- include "ndp-ep-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ndp-ep-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ndp-ep-api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "ndp-ep-api.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # command: ["/bin/sh", "-c"]
+          # args:
+          #   - |
+          #     find /app/ui/build -name "*.js" \
+          #       -exec sed -i "s|__NDP_EP_API_URL__|${REACT_APP_API_BASE_URL}|g" {} \;
+          #     exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+          ports:
+            - containerPort: {{ .Values.containerPort }}
+          # env:
+          #   - name: REACT_APP_API_BASE_URL
+          #     value: {{ printf "https://%s%s" (.Values.global.clusterHost | default "localhost") (.Values.global.clusterApiPath | default "/api") | quote }}
+          {{- if or .Values.envSecret.enabled .Values.rootPath.enabled }}
+          envFrom:
+            {{- if .Values.envSecret.enabled }}
+            - secretRef:
+                name: {{ .Values.envSecret.name }}
+            {{- end }}
+            {{- /* federation-config is written by the pre-install federation-fetch Job.
+                   optional:true so manual installs (no federation.configId) still work. */}}
+            - configMapRef:
+                name: federation-config
+                optional: true
+            {{- if .Values.rootPath.enabled }}
+            - configMapRef:
+                name: {{ .Values.rootPath.configMap.name }}
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

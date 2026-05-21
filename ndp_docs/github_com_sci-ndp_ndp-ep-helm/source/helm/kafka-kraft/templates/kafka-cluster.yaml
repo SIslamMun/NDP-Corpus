@@ -1,0 +1,60 @@
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: {{ .Values.clusterName }}-controllers
+  labels:
+    strimzi.io/cluster: {{ .Values.clusterName }}
+spec:
+  replicas: {{ .Values.controllers.replicas }}
+  roles:
+    - controller
+  storage:
+    type: {{ .Values.controllers.storage.type }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: {{ .Values.clusterName }}-brokers
+  labels:
+    strimzi.io/cluster: {{ .Values.clusterName }}
+spec:
+  replicas: {{ .Values.brokers.replicas }}
+  roles:
+    - broker
+  storage:
+    type: {{ .Values.brokers.storage.type }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: {{ .Values.clusterName }}
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: {{ .Values.kafka.version | quote }}
+    metadataVersion: {{ .Values.kafka.metadataVersion | quote }}
+    listeners:
+      - name: external
+        port: 9094
+        type: nodeport
+        tls: false
+        configuration:
+          brokers:
+            {{- range .Values.brokers.nodePorts }}
+            - broker: {{ .broker }}
+              advertisedHost: {{ $.Values.global.clusterHost | default $.Values.brokers.advertisedHost | quote }}
+              nodePort: {{ .port }}
+            {{- end }}
+    config:
+      offsets.topic.replication.factor: {{ .Values.kafka.config.offsetsTopicReplicationFactor }}
+      transaction.state.log.replication.factor: {{ .Values.kafka.config.transactionStateLogReplicationFactor }}
+      transaction.state.log.min.isr: {{ .Values.kafka.config.transactionStateLogMinIsr }}
+      default.replication.factor: {{ .Values.kafka.config.defaultReplicationFactor }}
+      min.insync.replicas: {{ .Values.kafka.config.minInsyncReplicas }}
+{{- if .Values.entityOperator.enabled }}
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+{{- end }}

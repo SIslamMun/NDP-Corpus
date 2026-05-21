@@ -1,0 +1,616 @@
+import axios from 'axios';
+
+// Base URL of your API - configurable via environment variable
+export const BASE_URL = window.__EP_CONFIG__?.rootPath ?? '';
+
+// Create axios instance with default configuration
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 60000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// List of endpoints that don't require authentication
+const PUBLIC_ENDPOINTS = [];
+
+// Request interceptor to add auth token (with exceptions for public endpoints)
+apiClient.interceptors.request.use(
+  (config) => {
+    // Check if this is a public endpoint that doesn't need authentication
+    const isPublicEndpoint = PUBLIC_ENDPOINTS.some(endpoint => 
+      config.url.startsWith(endpoint)
+    );
+    
+    if (!isPublicEndpoint) {
+      // Private endpoint - require authentication
+      const authToken = localStorage.getItem('authToken');
+      
+      if (authToken) {
+        config.headers.Authorization = `Bearer ${authToken}`;
+      } else {
+        // If no token is available for private endpoints, we should redirect to login
+        console.error('No authentication token found for private endpoint:', config.url);
+        window.location.reload(); // Force re-authentication
+        return Promise.reject(new Error('Authentication required'));
+      }
+    } else {
+      // Public endpoint - no authentication required
+      console.log('Making public API call to:', config.url);
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Only handle auth errors for private endpoints
+    const isPublicEndpoint = PUBLIC_ENDPOINTS.some(endpoint => 
+      error.config?.url?.startsWith(endpoint)
+    );
+    
+    if (!isPublicEndpoint && error.response?.status === 401) {
+      // Token expired, invalid, or missing for private endpoint
+      console.error('Authentication failed:', error.response.data);
+      
+      // Remove invalid token
+      localStorage.removeItem('authToken');
+      
+      // Show user-friendly message
+      alert('Your session has expired. Please log in again.');
+      
+      // Force page reload to trigger AuthGuard
+      window.location.reload();
+    } else if (!isPublicEndpoint && error.response?.status === 403) {
+      // User doesn't have permission for private endpoint
+      console.error('Access forbidden:', error.response.data);
+      alert('You do not have permission to perform this action.');
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Organizations API
+export const organizationsAPI = {
+  list: (params = {}) => 
+    apiClient.get('/organization', { params }),
+  
+  create: (data, server = 'local') => 
+    apiClient.post('/organization', data, { params: { server } }),
+  
+  // `cascade` defaults to true for backwards-compatibility with the
+  // existing API contract; callers that want a "delete the org only"
+  // semantic (the UI does) should pass `{ cascade: false }`.
+  delete: (organizationName, server = 'local', { cascade = true } = {}) =>
+    apiClient.delete(`/organization/${organizationName}`, {
+      params: { server, cascade }
+    }),
+};
+
+// Kafka Topics API
+export const kafkaAPI = {
+  create: (data, server = 'local') => 
+    apiClient.post('/kafka', data, { params: { server } }),
+  
+  update: (datasetId, data, server = 'local') => 
+    apiClient.put(`/kafka/${datasetId}`, data, { params: { server } }),
+};
+
+// URL Resources API
+export const urlAPI = {
+  create: (data, server = 'local') => 
+    apiClient.post('/url', data, { params: { server } }),
+  
+  update: (resourceId, data, server = 'local') => 
+    apiClient.put(`/url/${resourceId}`, data, { params: { server } }),
+};
+
+// S3 Resources API
+export const s3API = {
+  create: (data, server = 'local') => 
+    apiClient.post('/s3', data, { params: { server } }),
+  
+  update: (resourceId, data, server = 'local') => 
+    apiClient.put(`/s3/${resourceId}`, data, { params: { server } }),
+};
+
+// S3 Bucket Management API
+export const s3BucketAPI = {
+  list: () => 
+    apiClient.get('/s3/buckets/'),
+  
+  create: (data) => 
+    apiClient.post('/s3/buckets/', data),
+  
+  getInfo: (bucketName) => 
+    apiClient.get(`/s3/buckets/${bucketName}`),
+  
+  delete: (bucketName) => 
+    apiClient.delete(`/s3/buckets/${bucketName}`),
+};
+
+// S3 Object Management API
+export const s3ObjectAPI = {
+  upload: (bucketName, file, objectKey = null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (objectKey) {
+      formData.append('object_key', objectKey);
+    }
+    
+    return apiClient.post(`/s3/objects/${bucketName}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  list: (bucketName, prefix = null) => 
+    apiClient.get(`/s3/objects/${bucketName}`, { 
+      params: prefix ? { prefix } : {} 
+    }),
+  
+  download: (bucketName, objectKey) => 
+    apiClient.get(`/s3/objects/${bucketName}/${objectKey}`, {
+      responseType: 'blob',
+    }),
+  
+  delete: (bucketName, objectKey) => 
+    apiClient.delete(`/s3/objects/${bucketName}/${objectKey}`),
+  
+  getMetadata: (bucketName, objectKey) => 
+    apiClient.get(`/s3/objects/${bucketName}/${objectKey}/metadata`),
+};
+
+// S3 Presigned URL API
+export const s3PresignedAPI = {
+  getUploadUrl: (bucketName, objectKey, expiresIn = 3600) => 
+    apiClient.post(`/s3/objects/${bucketName}/${objectKey}/presigned-upload`, {
+      expires_in: expiresIn
+    }),
+  
+  getDownloadUrl: (bucketName, objectKey, expiresIn = 3600) => 
+    apiClient.post(`/s3/objects/${bucketName}/${objectKey}/presigned-download`, {
+      expires_in: expiresIn
+    }),
+};
+
+// Services API
+export const servicesAPI = {
+  getInfo: (serviceId) =>
+    apiClient.get(`/services/${serviceId}/info`),
+
+  create: (data, server = 'local') =>
+    apiClient.post('/services', data, { params: { server } }),
+
+  update: (serviceId, data, server = 'local') =>
+    apiClient.put(`/services/${serviceId}`, data, { params: { server } }),
+};
+
+// General Dataset API
+export const generalDatasetAPI = {
+  create: (data, server = 'local') =>
+    apiClient.post('/dataset', data, { params: { server } }),
+
+  update: (datasetId, data, server = 'local') =>
+    apiClient.put(`/dataset/${datasetId}`, data, { params: { server } }),
+
+  partialUpdate: (datasetId, data, server = 'local') =>
+    apiClient.patch(`/dataset/${datasetId}`, data, { params: { server } }),
+
+  publish: (datasetId) =>
+    apiClient.post(`/dataset/${datasetId}/publish`),
+};
+
+// Dataset API (for deletion)
+export const datasetAPI = {
+  delete: (datasetId, server = 'local') =>
+    apiClient.delete(`/datasets/${datasetId}`, { params: { server } }),
+};
+
+// Search API
+export const searchAPI = {
+  searchByTerms: (terms, keys = null, server = 'global') => {
+    console.log('searchByTerms called with:', { terms, keys, server }); // Debug log
+    
+    // Build URL manually to ensure correct format
+    let url = '/search?';
+    
+    // Add terms as individual parameters
+    if (terms && Array.isArray(terms)) {
+      terms.forEach(term => {
+        url += `terms=${encodeURIComponent(term)}&`;
+      });
+    }
+    
+    // Add keys if provided
+    if (keys && Array.isArray(keys) && keys.length > 0) {
+      keys.forEach(key => {
+        if (key !== null && key !== undefined) {
+          url += `keys=${encodeURIComponent(key)}&`;
+        } else {
+          url += `keys=&`;
+        }
+      });
+    }
+    
+    // Add server
+    url += `server=${encodeURIComponent(server)}`;
+    
+    console.log('Final URL:', url); // Debug log
+    
+    return apiClient.get(url);
+  },
+  
+  searchAdvanced: (searchData) => {
+    console.log('searchAdvanced called with:', searchData); // Debug log
+    return apiClient.post('/search', searchData);
+  },
+};
+
+// Resources management API
+export const resourcesAPI = {
+  getById: (resourceId) =>
+    apiClient.get(`/resources/${resourceId}`),
+
+  patch: (resourceId, data, server = 'local') =>
+    apiClient.patch(`/resources/${resourceId}`, data, { params: { server } }),
+
+  deleteById: (resourceId, server = 'local') =>
+    apiClient.delete('/resource', {
+      params: { resource_id: resourceId, server }
+    }),
+
+  deleteByName: (resourceName, server = 'local') =>
+    apiClient.delete(`/resource/${resourceName}`, {
+      params: { server }
+    }),
+};
+
+// Status API
+export const statusAPI = {
+  getStatus: () => apiClient.get('/status/'),
+  getMetrics: () => apiClient.get('/status/metrics'),
+  getKafkaDetails: () => apiClient.get('/status/kafka-details'),
+  getJupyterDetails: () => apiClient.get('/status/jupyter'),
+};
+
+// API Version Detection
+export const versionAPI = {
+  /**
+   * Get API version information
+   * Returns version details including major.minor.patch format
+   */
+  getVersion: async () => {
+    try {
+      const response = await apiClient.get('/status/');
+      const status = response.data;
+      
+      // Try to extract version from various possible fields
+      const version = status.api_version || status.version || status.app_version || '0.1.0';
+      
+      return {
+        version,
+        parsed: parseVersion(version),
+        raw: status
+      };
+    } catch (error) {
+      console.warn('Could not fetch API version, assuming 0.1.0:', error.message);
+      return {
+        version: '0.1.0',
+        parsed: { major: 0, minor: 1, patch: 0 },
+        raw: null
+      };
+    }
+  },
+
+  /**
+   * Check if API version supports S3 features
+   * S3 features require version 0.2.0 or higher
+   */
+  supportsS3Features: async () => {
+    try {
+      const versionInfo = await versionAPI.getVersion();
+      const { major, minor } = versionInfo.parsed;
+      
+      // S3 features available in 0.2.0+
+      return major > 0 || (major === 0 && minor >= 2);
+    } catch (error) {
+      console.warn('Could not check S3 feature support:', error.message);
+      return false;
+    }
+  }
+};
+
+/**
+ * Parse version string into major.minor.patch components
+ */
+const parseVersion = (versionString) => {
+  try {
+    // Handle various version formats: "0.2.0", "v0.2.0", "0.2.0-beta", etc.
+    const cleanVersion = versionString.replace(/^v/, '').split(/[-+]/)[0];
+    const parts = cleanVersion.split('.').map(num => parseInt(num, 10) || 0);
+    
+    return {
+      major: parts[0] || 0,
+      minor: parts[1] || 0,
+      patch: parts[2] || 0,
+      original: versionString
+    };
+  } catch (error) {
+    console.warn('Could not parse version string:', versionString, error.message);
+    return {
+      major: 0,
+      minor: 1,
+      patch: 0,
+      original: versionString
+    };
+  }
+};
+
+// User API - NEW: Added for user information and token validation
+export const userAPI = {
+  /**
+   * Get current user information - requires valid Bearer token
+   * Used for both user info display and token validation
+   */
+  getUserInfo: () => apiClient.get('/user/info'),
+};
+
+// Access-request workflow API
+export const accessRequestsAPI = {
+  /**
+   * Submit an access request for the currently-authenticated user.
+   * Used from pages that are already inside the app and therefore have a
+   * token in localStorage (goes through the standard apiClient interceptor).
+   */
+  create: (justification) =>
+    apiClient.post('/user/access-requests', { justification: justification || null }),
+
+  /**
+   * Submit an access request using an explicit token that is NOT stored in
+   * localStorage. Used from the AuthGuard screen for users that have a
+   * valid token but are denied entry to the Endpoint — we do not want to
+   * persist their token but we still need to attach it to this one call.
+   */
+  createWithToken: (token, justification) => {
+    const tempClient = axios.create({
+      baseURL: BASE_URL,
+      timeout: 60000,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return tempClient.post('/user/access-requests', {
+      justification: justification || null,
+    });
+  },
+
+  /**
+   * List access requests. Admin only.
+   * @param {string|null} status - One of 'pending' | 'approved' | 'rejected' | 'all', or null to use the backend default (pending).
+   */
+  list: (status = null) =>
+    apiClient.get('/user/access-requests', {
+      params: status ? { status } : {},
+    }),
+
+  /**
+   * Approve a pending request. Admin only.
+   * @param {string} requestId
+   * @param {'member'|'admin'} grantType
+   * @param {string|null} notes
+   */
+  approve: (requestId, grantType, notes = null) =>
+    apiClient.post(`/user/access-requests/${requestId}/approve`, {
+      grant_type: grantType,
+      notes: notes || null,
+    }),
+
+  /**
+   * Reject a pending request. Admin only.
+   */
+  reject: (requestId, notes = null) =>
+    apiClient.post(`/user/access-requests/${requestId}/reject`, {
+      notes: notes || null,
+    }),
+};
+
+/**
+ * Return true if the given user_info payload grants admin access to the
+ * access-request management page. Admins are: holders of the `ndp_admin`
+ * realm role OR holders of any role ending in `_admin` (which covers the
+ * endpoint-scoped `{UUID}_admin` role).
+ */
+export const isAccessRequestAdmin = (userInfo) => {
+  const roles = userInfo?.roles;
+  if (!Array.isArray(roles)) return false;
+  return roles.some((role) => {
+    if (typeof role !== 'string') return false;
+    const lower = role.trim().toLowerCase();
+    return lower === 'ndp_admin' || lower.endsWith('_admin');
+  });
+};
+
+// Authentication API - Enhanced with proper user info validation
+export const authAPI = {
+  /**
+   * Validate token by attempting to get user info
+   * Returns user data if token is valid, throws error if invalid
+   */
+  validateToken: async (token) => {
+    // Temporarily set the token for this request
+    const tempClient = axios.create({
+      baseURL: BASE_URL,
+      timeout: 60000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    // Try to get user info with the provided token
+    const response = await tempClient.get('/user/info');
+    return response.data;
+  },
+
+  /**
+   * Authenticate with username and password.
+   * On success, the returned access token is stored in localStorage so that
+   * subsequent requests pick it up via the axios request interceptor.
+   *
+   * @param {string} username
+   * @param {string} password
+   * @returns {Promise<Object>} The identity provider response (access_token, etc.)
+   */
+  login: async (username, password) => {
+    // Use a bare axios instance so the request interceptor does not require
+    // an existing token for this public, pre-authentication endpoint.
+    const tempClient = axios.create({
+      baseURL: BASE_URL,
+      timeout: 60000,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    let data;
+    try {
+      const response = await tempClient.post('/user/login', { username, password });
+      data = response.data;
+
+      if (!data || !data.access_token) {
+        throw new Error('Login response is missing access token');
+      }
+    } catch (error) {
+      localStorage.removeItem('authToken');
+
+      if (error.response?.status === 401) {
+        throw new Error(
+          error.response.data?.detail || 'Invalid username or password'
+        );
+      }
+      if (error.response?.status === 502) {
+        throw new Error('Authentication service is unavailable');
+      }
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        throw new Error('Cannot connect to API server');
+      }
+      throw new Error(
+        error.response?.data?.detail || error.message || 'Login failed'
+      );
+    }
+
+    // Credentials were accepted by the IDP. Validate the resulting token
+    // against /user/info so authorization errors (e.g. the user is not
+    // allowed to access this Endpoint) are surfaced before we store it.
+    try {
+      await authAPI.validateToken(data.access_token);
+    } catch (error) {
+      if (error.response?.status === 403) {
+        // Propagate the raw token so the caller can offer a
+        // Request-access flow without re-entering credentials.
+        const err = new Error(
+          error.response.data?.detail ||
+            'You do not have permission to access this Endpoint.'
+        );
+        err.deniedToken = data.access_token;
+        throw err;
+      }
+      if (error.response?.status === 401) {
+        throw new Error('Invalid username or password');
+      }
+      throw new Error(
+        error.response?.data?.detail || error.message || 'Login failed'
+      );
+    }
+
+    localStorage.setItem('authToken', data.access_token);
+    return data;
+  },
+  
+  /**
+   * Set authentication token and validate it
+   * @param {string} token - The Bearer token to set and validate
+   * @returns {Promise<Object>} User information if token is valid
+   */
+  setAndValidateToken: async (token) => {
+    if (!token || typeof token !== 'string' || token.trim() === '') {
+      throw new Error('Invalid token: Token cannot be empty');
+    }
+    
+    try {
+      // Validate the token by getting user info
+      const userInfo = await authAPI.validateToken(token.trim());
+      
+      // If validation succeeds, store the token
+      localStorage.setItem('authToken', token.trim());
+      
+      return userInfo;
+    } catch (error) {
+      // Remove any existing invalid token
+      localStorage.removeItem('authToken');
+      
+      // Re-throw with user-friendly message
+      if (error.response?.status === 401) {
+        throw new Error('Invalid token: Authentication failed');
+      } else if (error.response?.status === 403) {
+        const err = new Error(
+          error.response.data?.detail ||
+            'You do not have permission to access this Endpoint.'
+        );
+        // Propagate the raw token so the caller can offer a Request-access
+        // flow without forcing the user to re-enter it.
+        err.deniedToken = token.trim();
+        throw err;
+      } else if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
+        throw new Error('Cannot connect to API server');
+      } else {
+        throw new Error('Token validation failed: ' + (error.message || 'Unknown error'));
+      }
+    }
+  },
+  
+  /**
+   * Clear authentication data
+   */
+  logout: () => {
+    localStorage.removeItem('authToken');
+  }
+};
+
+// Redirect API
+export const redirectAPI = {
+  redirectToService: (serviceName) => 
+    apiClient.get(`/redirect/${serviceName}`),
+};
+
+// Utility function to check if token exists
+export const isAuthenticated = () => {
+  const token = localStorage.getItem('authToken');
+  return token && token.trim().length > 0;
+};
+
+// Utility function to get current token
+export const getAuthToken = () => {
+  return localStorage.getItem('authToken');
+};
+
+// Utility function to clear authentication
+export const clearAuth = () => {
+  localStorage.removeItem('authToken');
+};
+
+// Utility function to get API base URL for documentation links
+export const getApiBaseUrl = () => {
+  return BASE_URL;
+};
+
+export default apiClient;

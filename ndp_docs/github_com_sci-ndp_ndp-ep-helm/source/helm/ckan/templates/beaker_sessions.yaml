@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: session-secret
+type: Opaque
+stringData:
+  {{- $jwt := randAlphaNum 43 }}
+  jwt_encode: string:{{ $jwt }}
+  jwt_decode: string:{{ $jwt }}
+  session_secret: {{ randAlphaNum 43 }}
+  wtf_csrf_secret: {{ randAlphaNum 32 }}

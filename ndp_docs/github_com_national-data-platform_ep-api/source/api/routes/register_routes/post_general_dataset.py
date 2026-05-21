@@ -1,0 +1,295 @@
+# api/routes/register_routes/post_general_dataset.py
+
+import logging
+from typing import Any, Dict, Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.config import catalog_settings, ckan_settings
+from api.models.general_dataset_request_model import GeneralDatasetRequest
+from api.repositories import CKANRepository
+from api.services.affinities_services import AffinitiesClient
+from api.services.auth_services import get_user_for_write_operation
+from api.services.dataset_services.general_dataset import (
+    create_general_dataset,
+    patch_general_dataset,
+)
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.post(
+    "/dataset",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new general dataset",
+    description=(
+        "Create a new general dataset in CKAN with flexible schema.\n\n"
+        "### Required Fields\n"
+        "- **name**: Unique name for the dataset (lowercase, no spaces)\n"
+        "- **title**: Human-readable title of the dataset\n"
+        "- **owner_org**: Organization ID that owns this dataset\n\n"
+        "### Optional Fields\n"
+        "- **notes**: Description or notes about the dataset\n"
+        "- **tags**: List of tags for categorizing the dataset\n"
+        "- **extras**: Additional metadata as key-value pairs\n"
+        "- **resources**: List of resources associated with this dataset\n"
+        "- **private**: Whether the dataset is private (default: false)\n"
+        "- **license_id**: License identifier for the dataset\n"
+        "- **version**: Version of the dataset\n\n"
+        "### Server Selection\n"
+        "Use `?server=local` or `?server=pre_ckan` to choose the CKAN "
+        "instance. Defaults to 'local' if not provided.\n\n"
+        "### Authorization\n"
+        "This endpoint requires authentication. If organization-based "
+        "access control is enabled, only users belonging to the configured "
+        "organization can create datasets.\n\n"
+        "### Automatic NDP Metadata Injection\n"
+        "This endpoint automatically injects NDP metadata fields:\n"
+        "- **ndp_group_id**: Organization name from configuration\n"
+        "- **ndp_user_id**: Hashed user identifier\n\n"
+        "### Example Payload\n"
+        "```json\n"
+        "{\n"
+        '    "name": "my_research_dataset",\n'
+        '    "title": "My Research Dataset",\n'
+        '    "owner_org": "research_group",\n'
+        '    "notes": "A comprehensive research dataset",\n'
+        '    "tags": ["research", "climate"],\n'
+        '    "extras": {\n'
+        '        "project": "climate_study",\n'
+        '        "version": "1.0"\n'
+        "    },\n"
+        '    "resources": [\n'
+        "        {\n"
+        '            "url": "http://example.com/data.csv",\n'
+        '            "name": "main_data",\n'
+        '            "format": "CSV",\n'
+        '            "description": "Primary dataset"\n'
+        "        }\n"
+        "    ]\n"
+        "}\n"
+        "```\n"
+    ),
+    responses={
+        201: {
+            "description": (
+                "Dataset created successfully. If the requested name was "
+                "already in use, the dataset is still created with a "
+                "timestamped name and the response includes a 'warning' "
+                "field describing the automatic rename."
+            ),
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "created": {
+                            "summary": "Dataset created with the requested name",
+                            "value": {
+                                "id": "12345678-abcd-efgh-ijkl-1234567890ab",
+                                "name": "my_research_dataset",
+                                "title": "My Research Dataset",
+                                "warning": None,
+                            },
+                        },
+                        "auto_renamed": {
+                            "summary": (
+                                "Dataset created with an auto-generated "
+                                "timestamp suffix because the requested "
+                                "name was already in use"
+                            ),
+                            "value": {
+                                "id": "12345678-abcd-efgh-ijkl-1234567890ab",
+                                "name": "my_research_dataset-20260429143052",
+                                "title": (
+                                    "My Research Dataset " "(2026-04-29 14:30:52)"
+                                ),
+                                "warning": (
+                                    "A dataset named 'my_research_dataset' "
+                                    "already exists. This dataset was saved "
+                                    "as 'my_research_dataset-20260429143052' "
+                                    "with title 'My Research Dataset "
+                                    "(2026-04-29 14:30:52)'."
+                                ),
+                            },
+                        },
+                    }
+                }
+            },
+        },
+        401: {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+                "application/json": {"example": {"detail": "Invalid or expired token"}}
+            },
+        },
+        403: {
+            "description": "Forbidden - Organization membership required",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": (
+                            "Access forbidden: write operations require "
+                            "membership in organization 'Research Group'"
+                        )
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "server_error": {
+                            "summary": "Server configuration error",
+                            "value": {
+                                "detail": ("Server is not configured or unreachable.")
+                            },
+                        },
+                        "general_error": {
+                            "summary": "General error",
+                            "value": {"detail": "Error creating dataset: <error>"},
+                        },
+                    }
+                }
+            },
+        },
+    },
+)
+async def create_general_dataset_endpoint(
+    data: GeneralDatasetRequest,
+    server: Literal["local", "pre_ckan"] = Query(
+        "local", description="Specify 'local' or 'pre_ckan'. Defaults to 'local'."
+    ),
+    user_info: Dict[str, Any] = Depends(get_user_for_write_operation),
+):
+    """
+    Create a new general dataset in CKAN.
+
+    This endpoint provides a flexible interface for creating datasets without
+    being tied to specific resource types like S3, Kafka, or URL.
+
+    Parameters
+    ----------
+    data : GeneralDatasetRequest
+        Required/optional parameters for creating a general dataset.
+    server : Literal['local', 'pre_ckan']
+        If not provided, defaults to 'local'.
+    user_info : Dict[str, Any]
+        User authentication and authorization information.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the ID of the created dataset if successful.
+
+    Raises
+    ------
+    HTTPException
+        - 401: Authentication required
+        - 403: Organization membership required (if enabled)
+        - 400: Invalid parameters, server configuration, or other errors
+    """
+    try:
+        # Determine which repository to use based on server parameter
+        if server == "pre_ckan":
+            if not ckan_settings.pre_ckan_enabled:
+                raise HTTPException(
+                    status_code=400, detail="Pre-CKAN is disabled and cannot be used."
+                )
+            repository = CKANRepository(ckan_settings.pre_ckan)
+        else:
+            # Use local catalog (CKAN or MongoDB based on configuration)
+            repository = catalog_settings.local_catalog
+
+        # Convert ResourceRequest objects to dictionaries
+        resources = None
+        if data.resources:
+            resources = [resource.dict() for resource in data.resources]
+
+        creation_result = create_general_dataset(
+            name=data.name,
+            title=data.title,
+            owner_org=data.owner_org,
+            notes=data.notes,
+            tags=data.tags,
+            groups=data.groups,
+            extras=data.extras,
+            resources=resources,
+            private=data.private,
+            license_id=data.license_id,
+            version=data.version,
+            repository=repository,
+            user_info=user_info,
+        )
+
+        dataset_id = creation_result["id"]
+        final_name = creation_result["name"]
+        final_title = creation_result["title"]
+        warning = creation_result["warning"]
+
+        # Register in Affinities (non-blocking, errors are logged)
+        affinities_client = AffinitiesClient()
+        if affinities_client.is_enabled:
+            try:
+                affinity_uuid = await affinities_client.register_dataset(
+                    title=final_title,
+                    metadata={
+                        "name": final_name,
+                        "owner_org": data.owner_org,
+                        "local_id": dataset_id,
+                        "notes": data.notes,
+                        "tags": data.tags,
+                    },
+                )
+
+                # Store the Affinities UUID in the dataset extras
+                if affinity_uuid:
+                    try:
+                        patch_general_dataset(
+                            dataset_id=dataset_id,
+                            extras={"ndp_affinity_uuid": str(affinity_uuid)},
+                            repository=repository,
+                        )
+                        logger.info(
+                            f"Stored Affinities UUID {affinity_uuid} in dataset {dataset_id}"
+                        )
+                    except Exception as patch_error:
+                        logger.warning(
+                            f"Failed to store Affinities UUID in dataset extras: {patch_error}"
+                        )
+            except Exception as e:
+                logger.warning(f"Failed to register dataset in Affinities: {e}")
+
+        return {
+            "id": dataset_id,
+            "name": final_name,
+            "title": final_title,
+            "warning": warning,
+        }
+
+    except ValueError as exc:
+        # Handle validation errors
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except KeyError as exc:
+        # Handle reserved key errors
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Reserved key error: {str(exc)}",
+        )
+    except Exception as exc:
+        error_msg = str(exc)
+
+        # Handle specific error cases
+        if "No scheme supplied" in error_msg:
+            raise HTTPException(
+                status_code=400, detail="Server is not configured or unreachable."
+            )
+
+        # Generic error handling
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error creating dataset: {error_msg}",
+        )
