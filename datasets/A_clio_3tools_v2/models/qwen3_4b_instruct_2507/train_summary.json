@@ -1,0 +1,21 @@
+{
+  "backend": "unsloth",
+  "base_model": "unsloth/Qwen3-4B-Instruct-2507",
+  "model_type": "qwen3",
+  "loader": "FastLanguageModel",
+  "target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "response_masking": true,
+  "n_rows": 1003,
+  "lora_dir": "/home/cc/Phagocyte/example/datasets/A_clio_3tools/artifacts/qwen3_4b/lora",
+  "train_loss": 0.20504756585495723,
+  "train_runtime_s": 824.8968,
+  "merged_dir": "/home/cc/Phagocyte/example/datasets/A_clio_3tools/artifacts/qwen3_4b/merged_16bit"
+}

@@ -1,0 +1,21 @@
+{
+  "backend": "unsloth",
+  "base_model": "unsloth/functiongemma-270m-it",
+  "model_type": "gemma3_text",
+  "loader": "FastLanguageModel",
+  "target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "response_masking": true,
+  "n_rows": 1003,
+  "lora_dir": "/home/cc/Phagocyte/example/datasets/A_clio_3tools/artifacts/functiongemma_270m/lora",
+  "train_loss": 0.28374598707471577,
+  "train_runtime_s": 302.0358,
+  "merged_dir": "/home/cc/Phagocyte/example/datasets/A_clio_3tools/artifacts/functiongemma_270m/merged_16bit"
+}
