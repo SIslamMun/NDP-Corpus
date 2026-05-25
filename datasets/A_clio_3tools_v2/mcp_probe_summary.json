@@ -1,0 +1,14 @@
+[
+  {
+    "model": "ndp-qwen3-4b:latest",
+    "n_pass": 10,
+    "n_total": 12,
+    "wall_s": 21.29670214653015
+  },
+  {
+    "model": "ndp-functiongemma-270m:latest",
+    "n_pass": 0,
+    "n_total": 12,
+    "wall_s": 2.673611640930176
+  }
+]

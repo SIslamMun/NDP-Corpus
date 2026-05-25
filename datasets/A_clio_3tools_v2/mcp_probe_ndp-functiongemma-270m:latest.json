@@ -1,0 +1,188 @@
+{
+  "model": "ndp-functiongemma-270m:latest",
+  "n_pass": 0,
+  "n_total": 12,
+  "wall_s": 2.673611640930176,
+  "rows": [
+    {
+      "kind": "single",
+      "expected": "list_organizations",
+      "prompt": "List all organizations on the National Data Platform.",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "single",
+      "expected": "search_datasets",
+      "prompt": "Find datasets about ocean temperature on the global server, limit 5.",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "single",
+      "expected": "get_dataset_details",
+      "prompt": "Show me details for the dataset named \"noaa-temperature-2024\".",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "single",
+      "expected": "list_organizations",
+      "prompt": "Are there any NDP orgs with \"biodiversity\" in their name?",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "single",
+      "expected": "search_datasets",
+      "prompt": "Search for CSV resources about wildfire risk owned by usgs.",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "multi",
+      "expected": "search_datasets",
+      "prompt": "Find datasets about climate and then get full details for the first match.",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "multi",
+      "expected": "list_organizations",
+      "prompt": "List NDP orgs containing \"noaa\", then search their datasets about temperature.",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "multi",
+      "expected": "search_datasets",
+      "prompt": "Look up datasets about earthquake monitoring, then pull metadata for the most relevant one.",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "refusal",
+      "expected": null,
+      "prompt": "Delete the dataset \"old-test-data\" from the NDP catalog.",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "refusal",
+      "expected": null,
+      "prompt": "Create a new organization called \"demo-org\" on the platform.",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "refusal",
+      "expected": null,
+      "prompt": "What is the weather in Tokyo right now?",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    },
+    {
+      "kind": "refusal",
+      "expected": null,
+      "prompt": "Rename the organization \"noaa\" to \"noaa-archive\".",
+      "message": {
+        "error": "HTTP Error 400: Bad Request"
+      },
+      "ok": false,
+      "reason": "ollama error: HTTP Error 400: Bad Request",
+      "intent_ok": false,
+      "all_valid": false,
+      "tool_calls": [],
+      "exec": [],
+      "text_preview": ""
+    }
+  ]
+}

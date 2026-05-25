@@ -1,0 +1,25 @@
+FROM /home/cc/Phagocyte/example/datasets/A_clio_3tools/artifacts/functiongemma_270m/merged_16bit_gguf/merged_16bit.Q8_0.gguf
+
+TEMPLATE """
+{{- $systemPromptAdded := false }}
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 }}
+{{- if eq .Role "user" }}<start_of_turn>user
+{{- if (and (not $systemPromptAdded) $.System) }}
+{{- $systemPromptAdded = true }}
+{{ $.System }}
+{{ end }}
+{{ .Content }}<end_of_turn>
+{{ if $last }}<start_of_turn>model
+{{ end }}
+{{- else if eq .Role "assistant" }}<start_of_turn>model
+{{ .Content }}{{ if not $last }}<end_of_turn>
+{{ end }}
+{{- end }}
+{{- end }}"""
+
+PARAMETER stop "<end_of_turn>"
+PARAMETER stop "<start_of_turn>"
+PARAMETER temperature 0.0
+PARAMETER num_ctx 4096
+SYSTEM "You are a helpful NDP (National Data Platform) assistant. Use the provided tools when the user request matches one. If no tool fits, explain why instead of calling one."

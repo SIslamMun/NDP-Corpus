@@ -1,0 +1,64 @@
+{
+  "tools": [
+    {
+      "name": "list_organizations",
+      "description": "List organizations on the NDP catalog. Returns organization names.",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Substring filter on organization name",
+          "required": false
+        },
+        {
+          "name": "server",
+          "type": "string",
+          "description": "Server scope: 'local', 'global', or 'pre_ckan'",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "search_datasets",
+      "description": "Search NDP datasets by free-text terms (returns matching datasets with metadata).",
+      "parameters": [
+        {
+          "name": "terms",
+          "type": "array",
+          "description": "Search terms — list of strings combined as OR-search",
+          "required": true
+        },
+        {
+          "name": "keys",
+          "type": "string",
+          "description": "Optional field-restriction spec (comma-separated field names)",
+          "required": false
+        },
+        {
+          "name": "server",
+          "type": "string",
+          "description": "Server: 'local' or 'global'",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "get_dataset_details",
+      "description": "Look up a specific dataset by exact name or id (returns dataset metadata + resources). Uses the catalog search backend.",
+      "parameters": [
+        {
+          "name": "terms",
+          "type": "array",
+          "description": "Single-element array containing the dataset name or id",
+          "required": true
+        },
+        {
+          "name": "server",
+          "type": "string",
+          "description": "Server: 'local' or 'global'",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

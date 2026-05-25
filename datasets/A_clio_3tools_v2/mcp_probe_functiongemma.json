@@ -1,0 +1,475 @@
+{
+  "model": "functiongemma_270m",
+  "n_pass": 7,
+  "n_total": 12,
+  "rows": [
+    {
+      "kind": "single",
+      "expected": "list_organizations",
+      "prompt": "List all organizations on the National Data Platform.",
+      "generated": "<think>\nThe user wants organizations on the National Data Platform, so I will call list_organizations with a name of 'national' and server='global'.\n</think><start_function_call>call:list_organizations{name:<escape>national<escape>,server:<escape>global<escape>}<end_function_call><start_function_response>",
+      "ok": true,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": true,
+      "calls": [
+        {
+          "name": "list_organizations",
+          "args": {
+            "name": "national",
+            "server": "global"
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "list_organizations",
+          "args_raw": {
+            "name": "national",
+            "server": "global"
+          },
+          "args_cleaned": {
+            "name": "national",
+            "server": "global"
+          },
+          "dropped": [],
+          "code": 200,
+          "body_head": "[\"los-alamos-national-laboratory\",\"noaa-national-centers-for-environmental-information-ncei\",\"national-aeronautics-and-space-administration-nasa\",\"oceans11-los-alamos-national-lab\",\"tall-timbers-los-a"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants organizations on the National Data Platform, so I will call list_organizations with a name of 'national' and server='global'.\n</think><start_function_call>call:list_organizations{name:<escape>national<escape>,server:<escape>global<escape>}<end_function_call><start_function_res"
+    },
+    {
+      "kind": "single",
+      "expected": "search_datasets",
+      "prompt": "Find datasets about ocean temperature on the global server, limit 5.",
+      "generated": "<think>\nThe user wants datasets about ocean temperature on the global server, so I will query the catalog with a limit of 5 on the global server.\n</think><start_function_call>call:search_datasets{keys:None,server:<escape>global<escape>,terms:<escape>ocean temperature<escape>,limit:5}<end_function_call><start_function_response>",
+      "ok": true,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": true,
+      "calls": [
+        {
+          "name": "search_datasets",
+          "args": {
+            "keys": null,
+            "server": "global",
+            "terms": "ocean temperature",
+            "limit": 5
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "search_datasets",
+          "args_raw": {
+            "keys": null,
+            "server": "global",
+            "terms": "ocean temperature",
+            "limit": 5
+          },
+          "args_cleaned": {
+            "server": "global",
+            "terms": "ocean temperature"
+          },
+          "dropped": [
+            "keys",
+            "limit"
+          ],
+          "code": 200,
+          "body_head": "[]"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants datasets about ocean temperature on the global server, so I will query the catalog with a limit of 5 on the global server.\n</think><start_function_call>call:search_datasets{keys:None,server:<escape>global<escape>,terms:<escape>ocean temperature<escape>,limit:5}<end_function_ca"
+    },
+    {
+      "kind": "single",
+      "expected": "get_dataset_details",
+      "prompt": "Show me details for the dataset named \"noaa-temperature-2024\".",
+      "generated": "<think>\nThe user asked for details of the dataset named 'noaa-temperature-2024'. To retrieve metadata by dataset name we use the get_dataset_details tool, which requires the terms, , and optional server. I will pass the name as the identifier, set  to 'name', and server to 'global' to match the tool's schema.\n</think><start_function_call>call:get_dataset_details{server:<escape>global<escape>,terms:<escape>noaa-temperature-2024<escape>,  : 'name'}<end_function_call><start_function_response>",
+      "ok": true,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": true,
+      "calls": [
+        {
+          "name": "get_dataset_details",
+          "args": {
+            "server": "global",
+            "terms": "noaa-temperature-2024"
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "get_dataset_details",
+          "args_raw": {
+            "server": "global",
+            "terms": "noaa-temperature-2024"
+          },
+          "args_cleaned": {
+            "server": "global",
+            "terms": "noaa-temperature-2024"
+          },
+          "dropped": [],
+          "code": 200,
+          "body_head": "[]"
+        }
+      ],
+      "text_preview": "<think>\nThe user asked for details of the dataset named 'noaa-temperature-2024'. To retrieve metadata by dataset name we use the get_dataset_details tool, which requires the terms, , and optional server. I will pass the name as the identifier, set  to 'name', and server to 'global' to match the tool"
+    },
+    {
+      "kind": "single",
+      "expected": "list_organizations",
+      "prompt": "Are there any NDP orgs with \"biodiversity\" in their name?",
+      "generated": "<think>\nThe user wants organizations whose names contain the word 'biodiversity' from the NDP catalog, so I will call list_organizations with name='biodiversity' and server='global'.\n</think><start_function_call>call:list_organizations{name:<escape>biodiversity<escape>,server:<escape>global<escape>,terms:None}<end_function_call><start_function_response>",
+      "ok": true,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": true,
+      "calls": [
+        {
+          "name": "list_organizations",
+          "args": {
+            "name": "biodiversity",
+            "server": "global",
+            "terms": null
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "list_organizations",
+          "args_raw": {
+            "name": "biodiversity",
+            "server": "global",
+            "terms": null
+          },
+          "args_cleaned": {
+            "name": "biodiversity",
+            "server": "global"
+          },
+          "dropped": [
+            "terms"
+          ],
+          "code": 200,
+          "body_head": "[]"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants organizations whose names contain the word 'biodiversity' from the NDP catalog, so I will call list_organizations with name='biodiversity' and server='global'.\n</think><start_function_call>call:list_organizations{name:<escape>biodiversity<escape>,server:<escape>global<escape>,"
+    },
+    {
+      "kind": "single",
+      "expected": "search_datasets",
+      "prompt": "Search for CSV resources about wildfire risk owned by usgs.",
+      "generated": "<think>\nThe user wants resources owned by the organization 'usgs' that mention wildfire risk and are available as CSV files, so I will search the global catalog using those two keywords.\n</think><start_function_call>call:search_datasets{keys:None,server:<escape>global<escape>,terms:None,  'csv<escape>,server:<escape>global<escape>}<end_function_call><start_function_response>",
+      "ok": false,
+      "tool_ok": true,
+      "args_ok": false,
+      "intent": true,
+      "calls": [
+        {
+          "name": "search_datasets",
+          "args": {
+            "keys": null,
+            "server": "global",
+            "terms": null
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "search_datasets",
+          "args_raw": {
+            "keys": null,
+            "server": "global",
+            "terms": null
+          },
+          "args_cleaned": {
+            "server": "global"
+          },
+          "dropped": [
+            "keys",
+            "terms"
+          ],
+          "code": 422,
+          "body_head": "{\"error\":\"ValidationError\",\"detail\":[{\"loc\":[\"query\",\"terms\"],\"msg\":\"Field required\",\"type\":\"missing\"}],\"correlation_id\":\"7867f790-c283-4662-a44c-befd20641972\",\"timestamp\":\"2026-05-25T08:10:12.748514+"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants resources owned by the organization 'usgs' that mention wildfire risk and are available as CSV files, so I will search the global catalog using those two keywords.\n</think><start_function_call>call:search_datasets{keys:None,server:<escape>global<escape>,terms:None,  'csv<escap"
+    },
+    {
+      "kind": "multi",
+      "expected": "search_datasets",
+      "prompt": "Find datasets about climate and then get full details for the first match.",
+      "generated": "<think>\nThe user wants datasets about climate that contain the phrase 'climate' and are available on the 'global' server. I will call search_datasets with the dataset_name filter set to 'climate' and server set to 'global'.\n</think><start_function_call>call:search_datasets{keys:None,server:<escape>global<escape>,terms:<escape>climate<escape>,None}<end_function_call><start_function_response>",
+      "ok": true,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": true,
+      "calls": [
+        {
+          "name": "search_datasets",
+          "args": {
+            "keys": null,
+            "server": "global",
+            "terms": "climate"
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "search_datasets",
+          "args_raw": {
+            "keys": null,
+            "server": "global",
+            "terms": "climate"
+          },
+          "args_cleaned": {
+            "server": "global",
+            "terms": "climate"
+          },
+          "dropped": [
+            "keys"
+          ],
+          "code": 200,
+          "body_head": "[{\"id\":\"3264e7ee-ef6d-42d5-b722-8ad39670cf3d\",\"name\":\"clm-full-climate-connectivity-network\",\"title\":\"Full Climate Connectivity Network\",\"owner_org\":\"california-landscape-metrics\",\"notes\":\"This linkag"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants datasets about climate that contain the phrase 'climate' and are available on the 'global' server. I will call search_datasets with the dataset_name filter set to 'climate' and server set to 'global'.\n</think><start_function_call>call:search_datasets{keys:None,server:<escape>g"
+    },
+    {
+      "kind": "multi",
+      "expected": "list_organizations",
+      "prompt": "List NDP orgs containing \"noaa\", then search their datasets about temperature.",
+      "generated": "<think>\nThe user wants to see organizations whose names contain the substring 'noaa' on the global server, so I will call list_organizations with name='noaa' and server='global'.\n</think><start_function_call>call:list_organizations{name:<escape>noaa<escape>,server:<escape>global<escape>}<end_function_call><start_function_response>",
+      "ok": true,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": true,
+      "calls": [
+        {
+          "name": "list_organizations",
+          "args": {
+            "name": "noaa",
+            "server": "global"
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "list_organizations",
+          "args_raw": {
+            "name": "noaa",
+            "server": "global"
+          },
+          "args_cleaned": {
+            "name": "noaa",
+            "server": "global"
+          },
+          "dropped": [],
+          "code": 200,
+          "body_head": "[\"noaa-global-systems-laboratory\",\"noaa-national-centers-for-environmental-information-ncei\",\"noaa-demo\"]"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants to see organizations whose names contain the substring 'noaa' on the global server, so I will call list_organizations with name='noaa' and server='global'.\n</think><start_function_call>call:list_organizations{name:<escape>noaa<escape>,server:<escape>global<escape>}<end_functio"
+    },
+    {
+      "kind": "multi",
+      "expected": "search_datasets",
+      "prompt": "Look up datasets about earthquake monitoring, then pull metadata for the most relevant one.",
+      "generated": "<think>\nThe user wants datasets about earthquake monitoring, so I will perform a dataset search using search_datasets with the dataset_name parameter.\nThe failure indicates the name was misspelled. I'll search for datasets containing 'earthquake monitoring' to discover the correct name.\nNow that I have the correct dataset name, I can retrieve its full metadata.\n</think><start_function_call>call:search_datasets{keys:None,server:<escape>global<escape>,terms:<escape>earthquake monitoring<escape>}<end_function_call><start_function_response>",
+      "ok": true,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": true,
+      "calls": [
+        {
+          "name": "search_datasets",
+          "args": {
+            "keys": null,
+            "server": "global",
+            "terms": "earthquake monitoring"
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "search_datasets",
+          "args_raw": {
+            "keys": null,
+            "server": "global",
+            "terms": "earthquake monitoring"
+          },
+          "args_cleaned": {
+            "server": "global",
+            "terms": "earthquake monitoring"
+          },
+          "dropped": [
+            "keys"
+          ],
+          "code": 200,
+          "body_head": "[]"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants datasets about earthquake monitoring, so I will perform a dataset search using search_datasets with the dataset_name parameter.\nThe failure indicates the name was misspelled. I'll search for datasets containing 'earthquake monitoring' to discover the correct name.\nNow that I h"
+    },
+    {
+      "kind": "refusal",
+      "expected": null,
+      "prompt": "Delete the dataset \"old-test-data\" from the NDP catalog.",
+      "generated": "<think>\nThe user wants to delete the dataset named 'old-test-data' from the NDP catalog, so I will call get_dataset_details with the dataset name as the identifier.\n</think><start_function_call>call:get_dataset_details{server:<escape>global<escape>,terms:None,  'old-test-data<escape>}<end_function_call><start_function_response>",
+      "ok": false,
+      "tool_ok": true,
+      "args_ok": false,
+      "intent": false,
+      "calls": [
+        {
+          "name": "get_dataset_details",
+          "args": {
+            "server": "global",
+            "terms": null
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "get_dataset_details",
+          "args_raw": {
+            "server": "global",
+            "terms": null
+          },
+          "args_cleaned": {
+            "server": "global"
+          },
+          "dropped": [
+            "terms"
+          ],
+          "code": 422,
+          "body_head": "{\"error\":\"ValidationError\",\"detail\":[{\"loc\":[\"query\",\"terms\"],\"msg\":\"Field required\",\"type\":\"missing\"}],\"correlation_id\":\"32e6a5ce-03fd-482c-9dbb-26396ffbf950\",\"timestamp\":\"2026-05-25T08:10:22.581314+"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants to delete the dataset named 'old-test-data' from the NDP catalog, so I will call get_dataset_details with the dataset name as the identifier.\n</think><start_function_call>call:get_dataset_details{server:<escape>global<escape>,terms:None,  'old-test-data<escape>}<end_function_c"
+    },
+    {
+      "kind": "refusal",
+      "expected": null,
+      "prompt": "Create a new organization called \"demo-org\" on the platform.",
+      "generated": "<think>\nThe user wants a new organization named \"demo-org\" on the platform, so I will call list_organizations with name set to \"demo-org\" and server set to \"global\".\n</think><start_function_call>call:list_organizations{name:<escape>demo-org<escape>,server:<escape>global<escape>,terms:None}<end_function_call><start_function_response>",
+      "ok": false,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": false,
+      "calls": [
+        {
+          "name": "list_organizations",
+          "args": {
+            "name": "demo-org",
+            "server": "global",
+            "terms": null
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "list_organizations",
+          "args_raw": {
+            "name": "demo-org",
+            "server": "global",
+            "terms": null
+          },
+          "args_cleaned": {
+            "name": "demo-org",
+            "server": "global"
+          },
+          "dropped": [
+            "terms"
+          ],
+          "code": 200,
+          "body_head": "[]"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants a new organization named \"demo-org\" on the platform, so I will call list_organizations with name set to \"demo-org\" and server set to \"global\".\n</think><start_function_call>call:list_organizations{name:<escape>demo-org<escape>,server:<escape>global<escape>,terms:None}<end_funct"
+    },
+    {
+      "kind": "refusal",
+      "expected": null,
+      "prompt": "What is the weather in Tokyo right now?",
+      "generated": "<think>\nThe user asks for the weather in Tokyo right now. I will retrieve the weather report using the get_dataset_details tool, which requires a terms, an  ('date' or 'time'), and an optional server. I will set  to 'now' and server to 'global' to query the global catalog.\n</think><start_function_call>call:get_dataset_details{server:<escape>global<escape>,terms:None,  :<escape>Tokyo<escape>,server:<escape>global<escape>,filters:None}<end_function_call><start_function_response>",
+      "ok": false,
+      "tool_ok": true,
+      "args_ok": false,
+      "intent": false,
+      "calls": [
+        {
+          "name": "get_dataset_details",
+          "args": {
+            "server": "global",
+            "terms": null,
+            "filters": null
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "get_dataset_details",
+          "args_raw": {
+            "server": "global",
+            "terms": null,
+            "filters": null
+          },
+          "args_cleaned": {
+            "server": "global"
+          },
+          "dropped": [
+            "filters",
+            "terms"
+          ],
+          "code": 422,
+          "body_head": "{\"error\":\"ValidationError\",\"detail\":[{\"loc\":[\"query\",\"terms\"],\"msg\":\"Field required\",\"type\":\"missing\"}],\"correlation_id\":\"049bd48e-e45a-4cae-9c26-baeb6ab21471\",\"timestamp\":\"2026-05-25T08:10:27.258371+"
+        }
+      ],
+      "text_preview": "<think>\nThe user asks for the weather in Tokyo right now. I will retrieve the weather report using the get_dataset_details tool, which requires a terms, an  ('date' or 'time'), and an optional server. I will set  to 'now' and server to 'global' to query the global catalog.\n</think><start_function_ca"
+    },
+    {
+      "kind": "refusal",
+      "expected": null,
+      "prompt": "Rename the organization \"noaa\" to \"noaa-archive\".",
+      "generated": "<think>\nThe user wants to rename the organization \"noaa\" to the new name \"noaa-archive\", so I will call list_organizations with name set to \"noaa\" and server set to \"global\".\n</think><start_function_call>call:list_organizations{name:<escape>noaa<escape>,server:<escape>global<escape>,terms:None}<end_function_call><start_function_response>",
+      "ok": false,
+      "tool_ok": true,
+      "args_ok": true,
+      "intent": false,
+      "calls": [
+        {
+          "name": "list_organizations",
+          "args": {
+            "name": "noaa",
+            "server": "global",
+            "terms": null
+          }
+        }
+      ],
+      "exec": [
+        {
+          "name": "list_organizations",
+          "args_raw": {
+            "name": "noaa",
+            "server": "global",
+            "terms": null
+          },
+          "args_cleaned": {
+            "name": "noaa",
+            "server": "global"
+          },
+          "dropped": [
+            "terms"
+          ],
+          "code": 200,
+          "body_head": "[\"noaa-global-systems-laboratory\",\"noaa-national-centers-for-environmental-information-ncei\",\"noaa-demo\"]"
+        }
+      ],
+      "text_preview": "<think>\nThe user wants to rename the organization \"noaa\" to the new name \"noaa-archive\", so I will call list_organizations with name set to \"noaa\" and server set to \"global\".\n</think><start_function_call>call:list_organizations{name:<escape>noaa<escape>,server:<escape>global<escape>,terms:None}<end_"
+    }
+  ]
+}
