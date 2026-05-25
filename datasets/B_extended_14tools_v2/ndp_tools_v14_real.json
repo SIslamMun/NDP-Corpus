@@ -1,0 +1,253 @@
+{
+  "_meta": {
+    "source": "Real OpenAPI from http://155.101.6.191:8003/openapi.json (NDP-EndPoint-DEMO)",
+    "generated": "2026-05-25",
+    "notes": "Schema matches the live NDP MCP. Replaces ndp_tools_v14.json which used invented param names. See ndp_tools_v3_real.json for the 3-tool subset story."
+  },
+  "tools": [
+    {
+      "name": "get_dataset_details",
+      "description": "Look up a specific dataset by exact name or id (returns dataset metadata + resources). Uses the catalog search backend (no dedicated /dataset/{id} GET endpoint).",
+      "parameters": [
+        {"name": "terms",  "type": "array",  "description": "Single-element array containing the dataset name or id", "required": true},
+        {"name": "server", "type": "string", "description": "Server: 'local' or 'global'", "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "Show me details for dataset 'clm-full-climate-connectivity-network'.",
+          "input": "{\"terms\": [\"clm-full-climate-connectivity-network\"], \"server\": \"global\"}",
+          "output": "{\"datasets\": [{\"id\": \"3264e7ee-...\", \"name\": \"clm-full-climate-connectivity-network\", \"title\": \"Full Climate Connectivity Network\", \"owner_org\": \"california-landscape-metrics\", \"resources\": [...], \"extras\": {...}}], \"count\": 1}"
+        }
+      ]
+    },
+    {
+      "name": "get_jupyter_details",
+      "description": "Get JupyterHub workspace connection details for the calling user (URL, available kernels). Requires bearer auth on the live API.",
+      "parameters": [],
+      "examples": [
+        {
+          "instruction": "Where do I open my Jupyter workspace?",
+          "input": "{}",
+          "output": "{\"jupyter\": {\"url\": \"https://jhub.example.org/user/alice\", \"kernels\": [\"python3\"]}}"
+        }
+      ]
+    },
+    {
+      "name": "get_kafka_details",
+      "description": "Get NDP-EP's Kafka broker connection details (broker list, auth requirements). Requires bearer auth.",
+      "parameters": [],
+      "examples": [
+        {
+          "instruction": "What's the Kafka broker connection info?",
+          "input": "{}",
+          "output": "{\"kafka\": {\"bootstrap_servers\": [\"broker-1:9092\"], \"auth\": \"sasl\"}}"
+        }
+      ]
+    },
+    {
+      "name": "get_system_metrics",
+      "description": "Get NDP-EP system health metrics (CPU, memory, message rate, lag). Requires bearer auth.",
+      "parameters": [],
+      "examples": [
+        {
+          "instruction": "Show me NDP system health metrics.",
+          "input": "{}",
+          "output": "{\"metrics\": {\"cpu_pct\": 12.3, \"mem_gb\": 4.2, \"msg_rate_per_s\": 100}}"
+        }
+      ]
+    },
+    {
+      "name": "get_user_info",
+      "description": "Return the calling user's identity (name, email, roles). Requires bearer auth.",
+      "parameters": [],
+      "examples": [
+        {
+          "instruction": "Who am I logged in as?",
+          "input": "{}",
+          "output": "{\"user\": {\"sub\": \"alice\", \"email\": \"alice@example.org\", \"roles\": [\"editor\"]}}"
+        }
+      ]
+    },
+    {
+      "name": "list_kafka_streams",
+      "description": "List Kafka streaming resources on NDP via the resources catalog. Filter by name/format substring. Always sets format='kafka' under the hood.",
+      "parameters": [
+        {"name": "q",           "type": "string",  "description": "Free-text query across resource fields",                      "required": false},
+        {"name": "name",        "type": "string",  "description": "Resource name substring (e.g. 'gnss')",                       "required": false},
+        {"name": "description", "type": "string",  "description": "Text to search in resource descriptions",                     "required": false},
+        {"name": "limit",       "type": "integer", "description": "Max rows (default 20)",                                       "required": false},
+        {"name": "offset",      "type": "integer", "description": "Pagination offset",                                           "required": false},
+        {"name": "server",      "type": "string",  "description": "Catalog: 'local' or 'pre_ckan'",                              "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "List Kafka streams on NDP, limit 5.",
+          "input": "{\"limit\": 5, \"server\": \"local\"}",
+          "output": "{\"resources\": [{\"name\": \"earthscope_kafka_gnss_observations\", \"format\": \"kafka\", \"url\": \"kafka://broker:9196/...\"}], \"count\": 5}"
+        }
+      ]
+    },
+    {
+      "name": "list_organizations",
+      "description": "List organizations on the NDP catalog. Returns organization names.",
+      "parameters": [
+        {"name": "name",   "type": "string", "description": "Substring filter on organization name", "required": false},
+        {"name": "server", "type": "string", "description": "Server: 'local', 'global', or 'pre_ckan'", "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "List all NDP organizations.",
+          "input": "{\"server\": \"global\"}",
+          "output": "[\"ai-genomics-at-scale\", \"aquasteady\", \"burnpro3d\", \"...\"]"
+        },
+        {
+          "instruction": "Find NDP orgs with 'noaa' in their name.",
+          "input": "{\"name\": \"noaa\", \"server\": \"global\"}",
+          "output": "[\"noaa-air-quality\", \"noaa-climate\"]"
+        }
+      ]
+    },
+    {
+      "name": "register_dataset",
+      "description": "Create a new general dataset on NDP. Requires bearer auth. POST /dataset.",
+      "parameters": [
+        {"name": "name",       "type": "string",  "description": "Unique dataset name (lowercase, alphanumeric, underscores/hyphens)",   "required": true},
+        {"name": "title",      "type": "string",  "description": "Human-readable dataset title",                                          "required": true},
+        {"name": "owner_org",  "type": "string",  "description": "Organization ID that owns this dataset",                                "required": true},
+        {"name": "notes",      "type": "string",  "description": "Description or notes about the dataset",                                "required": false},
+        {"name": "tags",       "type": "array",   "description": "List of tags for categorization (array of strings)",                    "required": false},
+        {"name": "groups",     "type": "array",   "description": "List of groups for the dataset",                                        "required": false},
+        {"name": "private",    "type": "boolean", "description": "Whether the dataset is private",                                        "required": false},
+        {"name": "license_id", "type": "string",  "description": "License identifier (e.g. 'cc-by')",                                     "required": false},
+        {"name": "version",    "type": "string",  "description": "Dataset version string",                                                "required": false},
+        {"name": "server",     "type": "string",  "description": "Catalog scope: 'local' or 'pre_ckan'",                                  "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "Register a new public climate dataset 'noaa-temps-2024' for org 'noaa'.",
+          "input": "{\"name\": \"noaa-temps-2024\", \"title\": \"NOAA Temperatures 2024\", \"owner_org\": \"noaa\", \"notes\": \"Monthly land surface temp averages\", \"tags\": [\"climate\", \"temperature\"], \"license_id\": \"cc-by\", \"server\": \"local\"}",
+          "output": "{\"registration\": {\"id\": \"abc-123\"}, \"name\": \"noaa-temps-2024\", \"server\": \"local\"}"
+        }
+      ]
+    },
+    {
+      "name": "register_derived_stream",
+      "description": "Register a NEW Kafka topic that filters/derives from an existing one (e.g. per-station SNCL filter). Wraps POST /kafka with the `mapping` field recording the source_topic + filter.",
+      "parameters": [
+        {"name": "dataset_name",  "type": "string",  "description": "Unique dataset name for the derived stream (lowercase, alphanumeric)", "required": true},
+        {"name": "dataset_title", "type": "string",  "description": "Dataset title",                                                        "required": true},
+        {"name": "owner_org",     "type": "string",  "description": "Owning organization",                                                  "required": true},
+        {"name": "kafka_topic",   "type": "string",  "description": "Destination Kafka topic name (new topic for the derived stream)",      "required": true},
+        {"name": "kafka_host",    "type": "string",  "description": "Destination broker host",                                              "required": true},
+        {"name": "kafka_port",    "type": "integer", "description": "Destination broker port (1-65535)",                                    "required": true},
+        {"name": "mapping",       "type": "object",  "description": "Mapping with source_topic and SNCL/other filter info, e.g. {source_topic: 'public.gnss', sncl_filter: 'AGMT.CI.LY.20'}", "required": true},
+        {"name": "dataset_description", "type": "string", "description": "Description of the derived stream",                               "required": false},
+        {"name": "server",        "type": "string",  "description": "Catalog: 'local' or 'pre_ckan'",                                       "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "From public.gnss.positions create a filtered stream for SNCL 'AGMT.CI.LY.20' on derived.broker:9092 called 'gnss-agmt'.",
+          "input": "{\"dataset_name\": \"gnss-agmt\", \"dataset_title\": \"GNSS AGMT only\", \"owner_org\": \"earthscope\", \"kafka_topic\": \"derived.gnss.agmt\", \"kafka_host\": \"derived.broker\", \"kafka_port\": 9092, \"mapping\": {\"source_topic\": \"public.gnss.positions\", \"sncl_filter\": \"AGMT.CI.LY.20\"}, \"server\": \"local\"}",
+          "output": "{\"registration\": {\"id\": \"der-ccc\"}, \"server\": \"local\"}"
+        }
+      ]
+    },
+    {
+      "name": "register_kafka_topic",
+      "description": "Register a Kafka topic as an NDP streaming data source. POST /kafka. Requires bearer auth.",
+      "parameters": [
+        {"name": "dataset_name",        "type": "string",  "description": "Unique dataset name (lowercase, alphanumeric)",          "required": true},
+        {"name": "dataset_title",       "type": "string",  "description": "Dataset title",                                          "required": true},
+        {"name": "owner_org",           "type": "string",  "description": "Owning organization",                                    "required": true},
+        {"name": "kafka_topic",         "type": "string",  "description": "Kafka topic name",                                       "required": true},
+        {"name": "kafka_host",          "type": "string",  "description": "Kafka broker host",                                      "required": true},
+        {"name": "kafka_port",          "type": "integer", "description": "Kafka broker port (1-65535)",                            "required": true},
+        {"name": "dataset_description", "type": "string",  "description": "Description of the dataset",                             "required": false},
+        {"name": "server",              "type": "string",  "description": "Catalog: 'local' or 'pre_ckan'",                         "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "Register Kafka topic 'quakes' on kafka.example.org:9092 as dataset 'usgs-quakes' for org 'usgs'.",
+          "input": "{\"dataset_name\": \"usgs-quakes\", \"dataset_title\": \"USGS Earthquake Stream\", \"owner_org\": \"usgs\", \"kafka_topic\": \"quakes\", \"kafka_host\": \"kafka.example.org\", \"kafka_port\": 9092, \"server\": \"local\"}",
+          "output": "{\"registration\": {\"id\": \"kfk-789\"}, \"dataset_name\": \"usgs-quakes\"}"
+        }
+      ]
+    },
+    {
+      "name": "register_s3_resource",
+      "description": "Register an S3-hosted file as an NDP resource. POST /s3. Requires bearer auth.",
+      "parameters": [
+        {"name": "resource_name",  "type": "string", "description": "Unique resource name (lowercase, alphanumeric)", "required": true},
+        {"name": "resource_title", "type": "string", "description": "Resource title",                                  "required": true},
+        {"name": "owner_org",      "type": "string", "description": "Owning organization",                             "required": true},
+        {"name": "resource_s3",    "type": "string", "description": "S3 URL (s3://bucket/key)",                        "required": true},
+        {"name": "notes",          "type": "string", "description": "Description / notes about the resource",          "required": false},
+        {"name": "server",         "type": "string", "description": "Catalog: 'local' or 'pre_ckan'",                  "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "Add S3 file s3://my-bucket/2024.csv as resource 'temps-2024' for org 'noaa'.",
+          "input": "{\"resource_name\": \"temps-2024\", \"resource_title\": \"Temperatures 2024\", \"owner_org\": \"noaa\", \"resource_s3\": \"s3://my-bucket/2024.csv\", \"notes\": \"Hourly CSV\", \"server\": \"local\"}",
+          "output": "{\"registration\": {\"id\": \"s3-aaa\"}}"
+        }
+      ]
+    },
+    {
+      "name": "register_url_resource",
+      "description": "Register a URL-addressable resource (CSV / JSON / NetCDF / stream / ...). POST /url. Requires bearer auth.",
+      "parameters": [
+        {"name": "resource_name",  "type": "string", "description": "Unique resource name (lowercase, alphanumeric)",                  "required": true},
+        {"name": "resource_title", "type": "string", "description": "Resource title",                                                   "required": true},
+        {"name": "owner_org",      "type": "string", "description": "Owning organization",                                              "required": true},
+        {"name": "resource_url",   "type": "string", "description": "URL of the resource",                                              "required": true},
+        {"name": "file_type",      "type": "string", "description": "Resource format: 'stream' | 'CSV' | 'TXT' | 'JSON' | 'NetCDF'",     "required": false},
+        {"name": "notes",          "type": "string", "description": "Notes / description",                                              "required": false},
+        {"name": "server",         "type": "string", "description": "Catalog: 'local' or 'pre_ckan'",                                   "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "Register the CSV at https://example.org/data.csv as resource 'hourly-data' for org 'lab'.",
+          "input": "{\"resource_name\": \"hourly-data\", \"resource_title\": \"Hourly Data\", \"owner_org\": \"lab\", \"resource_url\": \"https://example.org/data.csv\", \"file_type\": \"CSV\", \"server\": \"local\"}",
+          "output": "{\"registration\": {\"id\": \"url-bbb\"}}"
+        }
+      ]
+    },
+    {
+      "name": "search_datasets",
+      "description": "Search NDP datasets by free-text terms (returns matching datasets with metadata). GET /search.",
+      "parameters": [
+        {"name": "terms",  "type": "array",  "description": "Search terms — list of strings combined as OR-search", "required": true},
+        {"name": "keys",   "type": "string", "description": "Optional field-restriction spec (comma-separated field names)", "required": false},
+        {"name": "server", "type": "string", "description": "Server: 'local' or 'global'", "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "Find datasets about climate on the global server.",
+          "input": "{\"terms\": [\"climate\"], \"server\": \"global\"}",
+          "output": "[{\"id\": \"3264e7ee-...\", \"name\": \"clm-full-climate-connectivity-network\", \"title\": \"Full Climate Connectivity Network\", \"owner_org\": \"california-landscape-metrics\"}]"
+        }
+      ]
+    },
+    {
+      "name": "search_resources",
+      "description": "Search the NDP resource catalog (across all datasets) by name, URL, format, or free-text. GET /resources/search.",
+      "parameters": [
+        {"name": "q",           "type": "string",  "description": "Free-text query across all resource fields",   "required": false},
+        {"name": "name",        "type": "string",  "description": "Resource name to match",                       "required": false},
+        {"name": "url",         "type": "string",  "description": "Resource URL to match",                        "required": false},
+        {"name": "format",      "type": "string",  "description": "Format ('CSV', 'JSON', 'NetCDF', 'kafka', …)", "required": false},
+        {"name": "description", "type": "string",  "description": "Text to search in resource descriptions",      "required": false},
+        {"name": "limit",       "type": "integer", "description": "Max results (default 20)",                     "required": false},
+        {"name": "offset",      "type": "integer", "description": "Pagination offset",                            "required": false},
+        {"name": "server",      "type": "string",  "description": "Catalog: 'local' or 'pre_ckan'",               "required": false}
+      ],
+      "examples": [
+        {
+          "instruction": "Find CSV resources about wildfire on the local server.",
+          "input": "{\"q\": \"wildfire\", \"format\": \"CSV\", \"limit\": 5, \"server\": \"local\"}",
+          "output": "{\"resources\": [], \"count\": 0}"
+        }
+      ]
+    }
+  ]
+}
